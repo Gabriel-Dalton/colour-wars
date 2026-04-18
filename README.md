@@ -1,51 +1,82 @@
 # COLOUR WARS
 
-A real-time, two-player grid conquest game with a neo-arcade aesthetic. Pick a starting square, then chain-react your circles across a 5×5 board until one colour owns everything.
+A real-time, two-player grid conquest game with a neo-arcade aesthetic. Pick a starting square, chain-react your circles across a 5×5 board, and talk smack in live chat until one colour owns everything.
 
 <p align="center">
   <img src="docs/home.png" alt="Home screen" width="420" />
 </p>
 
-> To add your own screenshots, drop PNGs into a `docs/` folder at the project root with the filenames below (`home.png`, `game.png`, `explosion.png`, `victory.png`). They'll render automatically.
+> Drop your own screenshots into a `docs/` folder at the project root with the filenames below (`home.png`, `game.png`, `explosion.png`, `chat.png`, `victory.png`) and they'll render automatically.
 
 ---
 
 ## Screenshots
 
-| Lobby | In-game |
+| Lobby | In-game HUD |
 |:---:|:---:|
 | <img src="docs/home.png" width="320" /> | <img src="docs/game.png" width="320" /> |
 
-| Chain reaction | Victory |
+| Chain reaction | Live chat |
 |:---:|:---:|
-| <img src="docs/explosion.png" width="320" /> | <img src="docs/victory.png" width="320" /> |
+| <img src="docs/explosion.png" width="320" /> | <img src="docs/chat.png" width="320" /> |
+
+| Victory |
+|:---:|
+| <img src="docs/victory.png" width="320" /> |
 
 ---
 
 ## Features
 
-- **Cross-device multiplayer** via Supabase Realtime — two players, one board, zero lag
-- **2-letter room codes** — friction-free sharing (e.g. `KP`, `XJ`)
-- **Animated explosions** — orbs visibly fly from the exploding cell to each neighbour, followed by a bounce on receive and a capture flash when enemy cells flip
-- **Neon CRT aesthetic** — Bebas Neue title, Orbitron score HUD, Space Mono body, scanline overlay, drifting ambient orbs
-- **Turn-aware glow** — board, HUD, and ambient colour all shift with the active player
+### Multiplayer
+- **Cross-device realtime** via Supabase — two players, one board, near-zero lag
+- **2-letter room codes** (e.g. `KP`, `XJ`) — friction-free sharing, big LCD-style letter boxes on the lobby
+- **Reconnect-safe** — refreshing the page or backgrounding the tab re-syncs state and re-subscribes to the channel
+- **Rematch flow** — one click to spin up a fresh room with the same opponent; both clients auto-navigate
+- **Graceful DB fallback** — if optional columns haven't been added yet, the client drops them and keeps playing
+
+### Two game modes (picked by the creator)
+| Mode | Click rules | Feel |
+|---|---|---|
+| **CLASSIC** | Only your own circles | Strict Chain Reaction. Growth happens only through explosions. More strategic. |
+| **OPEN** | Your own circles **OR** any empty cell | Plant anywhere. Looser, more chaotic, faster-paced. |
+
+Mode is selected on the lobby and displayed next to the room code in-game.
+
+### Live chat & taunts
+- **Free-form text** (120-char limit, 80-message history)
+- **Eight quick-reply taunts** one tap away: `HURRY UP`, `LOVE YOU`, `GG`, `OOPS`, `NICE MOVE`, `YOU'RE COOKED`, `OOF`, `NOOO`
+- **Floating pop-ins** — when you're not looking at chat, the opponent's newest message appears as a glowing bubble on the board, then fades
+- **Unread badge** on the chat launcher when the panel is closed
+- Runs on Supabase **broadcast** channels (no DB writes, no cleanup needed)
+
+### Animation & feel
+- **Flying orbs** — when a cell explodes, small glowing orbs visibly fly outward from the exploding cell to each orthogonal neighbour
+- **Burst + receive** — the exploding circle scales up and fades out; receivers pop in with a bounce
+- **Capture flash** — enemy cells that get converted play a distinct white-flash animation so you can see what you lost
+- **Wave-by-wave chains** — chain reactions resolve one wave at a time, each wave a full animation step
+- **Last-move impact rings** — after any move, every cell the mover now controls that *changed* gets a glowing ring (not just the clicked coordinate). Tells you exactly what your opponent did, even through a 10-step chain
+- **Turn-aware glow** — board, HUD, and ambient orbs all shift colour based on whose turn it is
 - **Territory bar** — live percentage split between blue and red
-- **Last-move marker** — ringed highlight on the cell most recently played
-- **Reconnect-safe** — refreshing or backgrounding the tab re-syncs state and re-subscribes
-- **Rematch flow** — one click to spin up a fresh room with the same opponent
-- **Graceful DB fallback** — if optional columns haven't been added yet, the game drops them and keeps playing
+
+### Aesthetic
+- **Fonts** — Bebas Neue (display), Orbitron (digits), Space Mono (body)
+- **Scanline CRT overlay** — subtle, full-screen
+- **Ambient drifting orbs** — cyan and red gradients floating behind the content
+- **Dot-grid background** on the lobby
 
 ---
 
 ## How to play
 
-1. Player 1 clicks **CREATE GAME** → gets a 2-letter room code
-2. Player 2 types the code and hits **GO**
-3. Each player picks a starting square — it spawns with 3 dots (one click away from exploding)
-4. On your turn, click any empty square or one of your own circles to add +1
-5. A circle reaching **4 dots explodes** — it clears itself and sends one orb up, down, left, and right (never diagonal)
-6. Orbs landing on enemy cells **convert them to your colour** and may chain-react
-7. First player to own every filled circle on the board wins
+1. **Create** — Player 1 picks a mode (Classic / Open), clicks CREATE GAME, gets a 2-letter room code
+2. **Join** — Player 2 types the code and hits GO
+3. **Place** — each player picks a starting square. It spawns with 3 dots (one click away from exploding)
+4. **Play** — on your turn, click one of your own circles to add +1. In Open mode you can also seed any empty cell
+5. **Explode** — a circle reaching 4 dots bursts and sends one orb up, down, left, and right (never diagonal)
+6. **Convert** — orbs landing on enemy circles flip them to your colour and may trigger a chain reaction
+7. **Win** — first player to reduce the opponent's circle count to zero wins the board
+8. **Rematch** — hit PLAY AGAIN on the victory screen; both players auto-join the new room
 
 ---
 
@@ -77,17 +108,20 @@ ALTER TABLE games REPLICA IDENTITY FULL;
 ALTER PUBLICATION supabase_realtime ADD TABLE games;
 ```
 
-### 2. Optional columns (last-move marker + rematch)
+### 2. Optional columns (last-move marker, rematch, mode)
 
-These aren't required — the client will detect they're missing and keep working — but running this unlocks the last-move highlight and rematch button:
+These aren't required — the client detects missing columns and keeps playing — but running this unlocks the extras:
 
 ```sql
 ALTER TABLE games
-  ADD COLUMN IF NOT EXISTS last_move_row      INTEGER,
-  ADD COLUMN IF NOT EXISTS last_move_col      INTEGER,
+  ADD COLUMN IF NOT EXISTS last_move_row       INTEGER,
+  ADD COLUMN IF NOT EXISTS last_move_col       INTEGER,
   ADD COLUMN IF NOT EXISTS rematch_requested_by TEXT,
-  ADD COLUMN IF NOT EXISTS rematch_room_id    TEXT;
+  ADD COLUMN IF NOT EXISTS rematch_room_id     TEXT,
+  ADD COLUMN IF NOT EXISTS mode                TEXT DEFAULT 'classic';
 ```
+
+> Chat uses Supabase **broadcast** channels — no table or migration needed. Messages are ephemeral and live only for the session.
 
 ### 3. Environment variables
 
@@ -107,7 +141,7 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000> in two browser windows (or two devices on the same network) to test multiplayer.
+Open <http://localhost:3000> in two browser windows (or on two devices on the same network) to test multiplayer.
 
 ### 5. Deploy to Vercel
 
@@ -122,9 +156,9 @@ Add the two `NEXT_PUBLIC_SUPABASE_*` env vars in your Vercel project settings.
 ## Tech stack
 
 - **Next.js 14** (App Router) + React 18 + TypeScript
-- **Supabase** — Postgres + Realtime websockets
+- **Supabase** — Postgres + Realtime (postgres_changes for game state, broadcast for chat)
 - **Tailwind CSS** — layout utilities
-- **Custom CSS keyframes** — neon pulses, board glow, burst/receive/capture animations
+- **Custom CSS keyframes** — neon pulses, board glow, burst / receive / capture / flying-orb animations
 - **Google Fonts** — Bebas Neue, Orbitron, Space Mono
 
 ---
@@ -133,6 +167,7 @@ Add the two `NEXT_PUBLIC_SUPABASE_*` env vars in your Vercel project settings.
 
 - Uniform **critical mass = 4** (every cell explodes at 4 dots)
 - Starting circles spawn at **critical mass − 1** so the first click always triggers an explosion
-- Explosions only propagate **orthogonally** — up, down, left, right (no diagonals)
-- Chain reactions resolve wave by wave, each wave animated as its own step
-- Win condition: opponent's circle count drops to zero while yours is above zero
+- Explosions propagate **orthogonally only** — up, down, left, right (no diagonals)
+- Chain reactions resolve **wave by wave**, each wave animated as its own step
+- **Win condition** — opponent's circle count drops to zero while yours is above zero
+- **Mode enforcement** — clickability and click-guards on both client and server respect the selected mode; the opponent sees the same rules apply
