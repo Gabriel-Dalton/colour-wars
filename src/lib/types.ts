@@ -24,4 +24,6 @@ export interface GameRow {
   winner: Player | null;
   move_count: number;
   created_at: string;
+  rematch_requested_by: Player | null;
+  rematch_room_id: string | null;
 }

@@ -11,6 +11,7 @@ import {
   nextTurn,
   countCircles,
   getAdjacentCells,
+  createInitialGrid,
 } from '@/lib/gameLogic';
 import Grid, { FlyingOrbData } from '@/components/Grid';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -24,6 +25,14 @@ function getOrCreatePlayerId(): string {
   return id;
 }
 
+function generateRoomCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  return (
+    chars[Math.floor(Math.random() * chars.length)] +
+    chars[Math.floor(Math.random() * chars.length)]
+  );
+}
+
 export default function GameClient({ roomId }: { roomId: string }) {
   const [game, setGame] = useState<GameRow | null>(null);
   const [myColor, setMyColor] = useState<Player | null>(null);
@@ -35,6 +44,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const [explodingCells, setExplodingCells] = useState<Set<string>>(new Set());
   const [receivingCells, setReceivingCells] = useState<Set<string>>(new Set());
   const [showOverlay, setShowOverlay] = useState(false);
+  const [rematchBusy, setRematchBusy] = useState(false);
+  const rematchNavigatedRef = useRef(false);
   const animatingRef = useRef(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const prevStatusRef = useRef<string | null>(null);
@@ -74,6 +85,13 @@ export default function GameClient({ roomId }: { roomId: string }) {
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [roomId, subscribe]);
+
+  // When rematch_room_id appears, both clients auto-navigate to the new room
+  useEffect(() => {
+    if (!game?.rematch_room_id || rematchNavigatedRef.current) return;
+    rematchNavigatedRef.current = true;
+    router.push(`/game/${game.rematch_room_id}`);
+  }, [game?.rematch_room_id, router]);
 
   // Delay the win overlay so both players can see the final board state
   useEffect(() => {
@@ -233,6 +251,58 @@ export default function GameClient({ roomId }: { roomId: string }) {
     },
     [game, myColor, roomId, submitting]
   );
+
+  const handleRematch = async () => {
+    if (!game || !myColor || rematchBusy) return;
+    if (game.rematch_room_id) return;
+    setRematchBusy(true);
+    try {
+      const opponentRequested =
+        game.rematch_requested_by && game.rematch_requested_by !== myColor;
+
+      if (!opponentRequested) {
+        // First player to click — flag request and wait for opponent
+        await supabase
+          .from('games')
+          .update({ rematch_requested_by: myColor })
+          .eq('id', roomId);
+        setRematchBusy(false);
+        return;
+      }
+
+      // Opponent already asked — create the new game and link it
+      const newRoomId = generateRoomCode();
+      const { error: insertError } = await supabase.from('games').insert({
+        id: newRoomId,
+        status: 'placement_blue',
+        // Swap colors so the previous loser starts (blue places first)
+        blue_player_id: game.red_player_id,
+        red_player_id: game.blue_player_id,
+        current_turn: 'blue',
+        grid: createInitialGrid(),
+        winner: null,
+        move_count: 0,
+      });
+      if (insertError) {
+        setRematchBusy(false);
+        return;
+      }
+      await supabase
+        .from('games')
+        .update({ rematch_room_id: newRoomId })
+        .eq('id', roomId);
+    } finally {
+      // rematchBusy resets when we navigate; leaving it true prevents double-clicks
+    }
+  };
+
+  const cancelRematch = async () => {
+    if (!game) return;
+    await supabase
+      .from('games')
+      .update({ rematch_requested_by: null })
+      .eq('id', roomId);
+  };
 
   const copyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/game/${roomId}`);
@@ -837,27 +907,108 @@ export default function GameClient({ roomId }: { roomId: string }) {
               </div>
             </div>
 
-            <button
-              onClick={() => router.push('/')}
-              className="ff-bebas"
-              style={{
-                width: '100%',
-                padding: '18px',
-                background: 'transparent',
-                border: `1px solid rgba(${winnerRgb},0.55)`,
-                borderLeft: `3px solid ${winnerColor}`,
-                color: winnerColor,
-                fontSize: '26px',
-                letterSpacing: '0.12em',
-                cursor: 'pointer',
-                transition: 'background 0.15s ease',
-                borderRadius: '3px',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = `rgba(${winnerRgb},0.09)`; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-            >
-              PLAY AGAIN
-            </button>
+            {(() => {
+              const iRequested = game.rematch_requested_by === myColor;
+              const theyRequested =
+                !!game.rematch_requested_by && game.rematch_requested_by !== myColor;
+              const canRematch = !!myColor;
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {theyRequested && (
+                    <div
+                      className="ff-space anim-slide-up-fast"
+                      style={{
+                        color: 'rgba(240,240,255,0.85)',
+                        fontSize: '10px',
+                        letterSpacing: '0.18em',
+                        textTransform: 'uppercase',
+                        padding: '10px',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.09)',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      Opponent wants a rematch
+                    </div>
+                  )}
+
+                  {canRematch && !iRequested && (
+                    <button
+                      onClick={handleRematch}
+                      disabled={rematchBusy}
+                      className="ff-bebas"
+                      style={{
+                        width: '100%',
+                        padding: '16px',
+                        background: theyRequested
+                          ? 'rgba(0,207,255,0.12)'
+                          : 'transparent',
+                        border: '1px solid rgba(0,207,255,0.55)',
+                        borderLeft: '3px solid #00CFFF',
+                        color: '#00CFFF',
+                        fontSize: '24px',
+                        letterSpacing: '0.12em',
+                        cursor: rematchBusy ? 'not-allowed' : 'pointer',
+                        opacity: rematchBusy ? 0.6 : 1,
+                        transition: 'background 0.15s ease',
+                        borderRadius: '3px',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,207,255,0.12)'; }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = theyRequested
+                          ? 'rgba(0,207,255,0.12)'
+                          : 'transparent';
+                      }}
+                    >
+                      {theyRequested ? 'ACCEPT REMATCH' : 'REMATCH'}
+                    </button>
+                  )}
+
+                  {canRematch && iRequested && !theyRequested && (
+                    <button
+                      onClick={cancelRematch}
+                      className="ff-bebas"
+                      style={{
+                        width: '100%',
+                        padding: '16px',
+                        background: 'rgba(0,207,255,0.04)',
+                        border: '1px dashed rgba(0,207,255,0.4)',
+                        color: 'rgba(0,207,255,0.75)',
+                        fontSize: '18px',
+                        letterSpacing: '0.14em',
+                        cursor: 'pointer',
+                        borderRadius: '3px',
+                      }}
+                    >
+                      WAITING FOR OPPONENT... (CANCEL)
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => router.push('/')}
+                    className="ff-bebas"
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      background: 'transparent',
+                      border: `1px solid rgba(${winnerRgb},0.4)`,
+                      color: winnerColor,
+                      fontSize: '18px',
+                      letterSpacing: '0.14em',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s ease',
+                      borderRadius: '3px',
+                      opacity: 0.85,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = `rgba(${winnerRgb},0.09)`; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    HOME
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
