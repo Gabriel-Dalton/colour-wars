@@ -1,4 +1,4 @@
-# Color Wars
+# Colour Wars
 
 Real-time two-player online grid conquest game. Grow your circles, split at 4, chain-react, conquer everything.
 
@@ -59,7 +59,7 @@ Add the two `NEXT_PUBLIC_SUPABASE_*` env vars in your Vercel project settings.
 
 ## How to play
 
-1. Player 1 clicks **Create Game** → gets a 6-letter room code
+1. Player 1 clicks **Create Game** → gets a 2-letter room code
 2. Player 2 enters the code and clicks **Join**
 3. Blue picks their starting square, then Red picks theirs
 4. Take turns clicking your own circles to add +1 value

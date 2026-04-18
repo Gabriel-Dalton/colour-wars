@@ -22,40 +22,6 @@ function getOrCreatePlayerId(): string {
   return id;
 }
 
-const S = {
-  page: {
-    minHeight: '100vh',
-    background: '#06060F',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '28px 20px',
-    position: 'relative' as const,
-    overflow: 'hidden',
-  },
-  ambientGlow: {
-    position: 'absolute' as const,
-    top: 0,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    width: '600px',
-    height: '300px',
-    background:
-      'radial-gradient(ellipse at center top, rgba(0,207,255,0.05) 0%, transparent 70%)',
-    pointerEvents: 'none' as const,
-  },
-  panel: {
-    width: '100%',
-    maxWidth: '320px',
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '10px',
-    position: 'relative' as const,
-    zIndex: 1,
-  },
-};
-
 export default function Home() {
   const [letter1, setLetter1] = useState('');
   const [letter2, setLetter2] = useState('');
@@ -119,34 +85,137 @@ export default function Home() {
   };
 
   return (
-    <main style={S.page}>
-      <div style={S.ambientGlow} />
+    <main
+      className="dot-bg"
+      style={{
+        minHeight: '100vh',
+        background: '#06060F',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '28px 20px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Ambient orb — cyan, top-right */}
+      <div
+        className="anim-float-a"
+        style={{
+          position: 'absolute',
+          top: '-140px',
+          right: '-110px',
+          width: '460px',
+          height: '460px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(0,207,255,0.1) 0%, transparent 62%)',
+          pointerEvents: 'none',
+        }}
+      />
+      {/* Ambient orb — red, bottom-left */}
+      <div
+        className="anim-float-b"
+        style={{
+          position: 'absolute',
+          bottom: '-120px',
+          left: '-90px',
+          width: '420px',
+          height: '420px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,45,85,0.1) 0%, transparent 62%)',
+          pointerEvents: 'none',
+        }}
+      />
 
-      {/* Title */}
-      <div className="anim-slide-up" style={{ textAlign: 'center', marginBottom: '52px', position: 'relative', zIndex: 1 }}>
+      {/* ── Title ───────────────────────────────────────────── */}
+      <div
+        className="anim-slide-up"
+        style={{ textAlign: 'center', marginBottom: '52px', position: 'relative', zIndex: 1 }}
+      >
         <h1
-          className="ff-bebas anim-flicker"
+          className="ff-bebas"
           style={{
-            fontSize: 'clamp(80px, 22vw, 140px)',
-            lineHeight: 0.86,
-            color: '#fff',
-            letterSpacing: '0.04em',
+            fontSize: 'clamp(82px, 22vw, 144px)',
+            lineHeight: 0.84,
             margin: 0,
-            textShadow:
-              '0 0 18px rgba(0,207,255,0.75), 0 0 55px rgba(0,207,255,0.3), 0 0 110px rgba(0,207,255,0.12)',
+            letterSpacing: '0.04em',
           }}
         >
-          COLOUR
-          <br />
-          WARS
+          <span
+            style={{
+              display: 'block',
+              color: '#00CFFF',
+              textShadow:
+                '0 0 16px rgba(0,207,255,0.9), 0 0 55px rgba(0,207,255,0.32), 0 0 110px rgba(0,207,255,0.12)',
+            }}
+          >
+            COLOUR
+          </span>
+          <span
+            style={{
+              display: 'block',
+              color: '#FF2D55',
+              textShadow:
+                '0 0 16px rgba(255,45,85,0.9), 0 0 55px rgba(255,45,85,0.32), 0 0 110px rgba(255,45,85,0.12)',
+            }}
+          >
+            WARS
+          </span>
         </h1>
+
+        {/* Colour-split separator */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginTop: '14px',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '1px',
+              background: 'linear-gradient(90deg, transparent, rgba(0,207,255,0.7))',
+            }}
+          />
+          <div
+            style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              background: '#00CFFF',
+              boxShadow: '0 0 8px rgba(0,207,255,0.9)',
+              margin: '0 2px',
+            }}
+          />
+          <div
+            style={{
+              width: '7px',
+              height: '7px',
+              borderRadius: '50%',
+              background: '#FF2D55',
+              boxShadow: '0 0 8px rgba(255,45,85,0.9)',
+              margin: '0 2px',
+            }}
+          />
+          <div
+            style={{
+              width: '56px',
+              height: '1px',
+              background: 'linear-gradient(90deg, rgba(255,45,85,0.7), transparent)',
+            }}
+          />
+        </div>
+
         <p
           className="ff-space"
           style={{
-            color: 'rgba(170,170,255,0.35)',
+            color: 'rgba(170,170,255,0.38)',
             fontSize: '10px',
-            letterSpacing: '0.25em',
-            marginTop: '14px',
+            letterSpacing: '0.26em',
+            marginTop: '12px',
             textTransform: 'uppercase',
           }}
         >
@@ -154,8 +223,18 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Buttons + inputs */}
-      <div style={S.panel}>
+      {/* ── Panel ───────────────────────────────────────────── */}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '320px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
         {/* Create game */}
         <button
           onClick={createGame}
@@ -163,57 +242,65 @@ export default function Home() {
           className="ff-bebas"
           style={{
             width: '100%',
-            padding: '20px',
+            padding: '18px 20px 18px 16px',
             background: 'transparent',
-            border: '2px solid rgba(0,207,255,0.65)',
+            border: '1px solid rgba(0,207,255,0.45)',
+            borderLeft: '3px solid #00CFFF',
             color: '#00CFFF',
-            fontSize: '30px',
-            letterSpacing: '0.1em',
+            fontSize: '28px',
+            letterSpacing: '0.12em',
             cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.5 : 1,
-            transition: 'all 0.15s ease',
-            boxShadow: '0 0 14px rgba(0,207,255,0.18), inset 0 0 14px rgba(0,207,255,0.04)',
+            opacity: loading ? 0.55 : 1,
+            transition: 'all 0.18s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 0 20px rgba(0,207,255,0.05)',
           }}
           onMouseEnter={e => {
             if (!loading) {
-              e.currentTarget.style.background = 'rgba(0,207,255,0.1)';
-              e.currentTarget.style.boxShadow =
-                '0 0 28px rgba(0,207,255,0.45), inset 0 0 20px rgba(0,207,255,0.08)';
+              e.currentTarget.style.background = 'rgba(0,207,255,0.07)';
+              e.currentTarget.style.boxShadow = '0 0 32px rgba(0,207,255,0.18)';
             }
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.boxShadow =
-              '0 0 14px rgba(0,207,255,0.18), inset 0 0 14px rgba(0,207,255,0.04)';
+            e.currentTarget.style.boxShadow = '0 0 20px rgba(0,207,255,0.05)';
           }}
         >
-          {loading ? 'CREATING...' : 'CREATE GAME'}
+          <span>{loading ? 'CREATING...' : 'CREATE GAME'}</span>
+          <span style={{ fontSize: '15px', opacity: 0.45, marginLeft: '8px' }}>→</span>
         </button>
 
         {/* Divider */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '6px 0',
-          }}
-        >
-          <div style={{ flex: 1, height: '1px', background: 'rgba(170,170,255,0.08)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '3px 0' }}>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(170,170,255,0.07)' }} />
           <span
             className="ff-space"
-            style={{ color: 'rgba(170,170,255,0.25)', fontSize: '9px', letterSpacing: '0.2em' }}
+            style={{ color: 'rgba(170,170,255,0.2)', fontSize: '9px', letterSpacing: '0.2em' }}
           >
-            JOIN WITH CODE
+            OR JOIN WITH CODE
           </span>
-          <div style={{ flex: 1, height: '1px', background: 'rgba(170,170,255,0.08)' }} />
+          <div style={{ flex: 1, height: '1px', background: 'rgba(170,170,255,0.07)' }} />
         </div>
 
-        {/* Two letter inputs + go */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+        {/* Letter inputs + go */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
           {[
-            { ref: input1Ref, value: letter1, onChange: handleL1, onKeyDown: undefined as React.KeyboardEventHandler<HTMLInputElement> | undefined, placeholder: 'A' },
-            { ref: input2Ref, value: letter2, onChange: handleL2, onKeyDown: handleL2KeyDown, placeholder: 'B' },
+            {
+              ref: input1Ref,
+              value: letter1,
+              onChange: handleL1,
+              onKeyDown: undefined as React.KeyboardEventHandler<HTMLInputElement> | undefined,
+              placeholder: 'A',
+            },
+            {
+              ref: input2Ref,
+              value: letter2,
+              onChange: handleL2,
+              onKeyDown: handleL2KeyDown,
+              placeholder: 'B',
+            },
           ].map((p, i) => (
             <input
               key={i}
@@ -226,12 +313,13 @@ export default function Home() {
               autoComplete="off"
               style={{
                 flex: 1,
-                height: '76px',
-                background: '#0D0D20',
-                border: '2px solid rgba(255,45,85,0.35)',
+                height: '72px',
+                background: '#0D0D1E',
+                border: '1px solid rgba(255,45,85,0.28)',
+                borderLeft: i === 0 ? '3px solid rgba(255,45,85,0.55)' : '1px solid rgba(255,45,85,0.28)',
                 color: '#FF2D55',
                 fontFamily: "'Orbitron', sans-serif",
-                fontSize: '38px',
+                fontSize: '34px',
                 fontWeight: 900,
                 textAlign: 'center',
                 letterSpacing: '0.05em',
@@ -241,13 +329,14 @@ export default function Home() {
                 textTransform: 'uppercase',
               }}
               onFocus={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,45,85,0.85)';
-                e.currentTarget.style.boxShadow =
-                  '0 0 18px rgba(255,45,85,0.3), inset 0 0 12px rgba(255,45,85,0.08)';
+                e.currentTarget.style.borderColor = 'rgba(255,45,85,0.8)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(255,45,85,0.18), inset 0 0 14px rgba(255,45,85,0.05)';
+                e.currentTarget.style.background = '#120A10';
               }}
               onBlur={e => {
-                e.currentTarget.style.borderColor = 'rgba(255,45,85,0.35)';
+                e.currentTarget.style.borderColor = 'rgba(255,45,85,0.28)';
                 e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.background = '#0D0D1E';
               }}
             />
           ))}
@@ -256,25 +345,25 @@ export default function Home() {
             onClick={joinGame}
             className="ff-bebas"
             style={{
-              width: '76px',
-              height: '76px',
+              width: '72px',
+              height: '72px',
               flexShrink: 0,
-              background: 'rgba(255,45,85,0.12)',
-              border: '2px solid rgba(255,45,85,0.65)',
+              background: 'rgba(255,45,85,0.1)',
+              border: '1px solid rgba(255,45,85,0.5)',
               color: '#FF2D55',
-              fontSize: '22px',
-              letterSpacing: '0.05em',
+              fontSize: '20px',
+              letterSpacing: '0.1em',
               cursor: 'pointer',
               transition: 'all 0.15s ease',
-              boxShadow: '0 0 12px rgba(255,45,85,0.12)',
+              boxShadow: '0 0 14px rgba(255,45,85,0.08)',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,45,85,0.28)';
-              e.currentTarget.style.boxShadow = '0 0 24px rgba(255,45,85,0.4)';
+              e.currentTarget.style.background = 'rgba(255,45,85,0.22)';
+              e.currentTarget.style.boxShadow = '0 0 28px rgba(255,45,85,0.32)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,45,85,0.12)';
-              e.currentTarget.style.boxShadow = '0 0 12px rgba(255,45,85,0.12)';
+              e.currentTarget.style.background = 'rgba(255,45,85,0.1)';
+              e.currentTarget.style.boxShadow = '0 0 14px rgba(255,45,85,0.08)';
             }}
           >
             GO
@@ -283,14 +372,14 @@ export default function Home() {
 
         {error && (
           <p
-            className="ff-space"
+            className="ff-space anim-slide-up-fast"
             style={{
               color: '#FF2D55',
               fontSize: '10px',
               textAlign: 'center',
               letterSpacing: '0.15em',
               margin: 0,
-              textShadow: '0 0 8px rgba(255,45,85,0.5)',
+              textShadow: '0 0 10px rgba(255,45,85,0.55)',
             }}
           >
             {error}
@@ -298,24 +387,40 @@ export default function Home() {
         )}
       </div>
 
-      {/* Footer rules */}
+      {/* ── How to play ─────────────────────────────────────── */}
       <div
-        className="ff-space"
         style={{
-          marginTop: '52px',
-          color: 'rgba(170,170,255,0.18)',
-          fontSize: '9px',
-          textAlign: 'center',
-          letterSpacing: '0.14em',
-          lineHeight: 2,
-          textTransform: 'uppercase',
+          marginTop: '50px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '7px',
           position: 'relative',
           zIndex: 1,
+          alignItems: 'center',
         }}
       >
-        <p style={{ margin: 0 }}>Click circles to grow (+1 point)</p>
-        <p style={{ margin: 0 }}>At 4 points → chain explosion</p>
-        <p style={{ margin: 0 }}>Conquer all cells to win</p>
+        {[
+          { n: '01', t: 'Click your circles to add +1 value' },
+          { n: '02', t: 'At 4 points the circle chain-explodes' },
+          { n: '03', t: 'Own every cell to win the board' },
+        ].map(({ n, t }) => (
+          <div
+            key={n}
+            className="ff-space"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: 'rgba(170,170,255,0.2)',
+              fontSize: '9px',
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span style={{ color: 'rgba(0,207,255,0.22)', minWidth: '14px' }}>{n}</span>
+            <span>{t}</span>
+          </div>
+        ))}
       </div>
     </main>
   );

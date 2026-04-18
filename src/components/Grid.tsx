@@ -22,21 +22,25 @@ export default function Grid({
   isPlacingNow,
   submitting,
 }: Props) {
-  const boardClass =
-    gameStatus === 'playing' || gameStatus === 'placement_blue' || gameStatus === 'placement_red'
-      ? currentTurn === 'blue'
-        ? 'anim-board-blue'
-        : 'anim-board-red'
-      : '';
+  const isActive =
+    gameStatus === 'playing' ||
+    gameStatus === 'placement_blue' ||
+    gameStatus === 'placement_red';
+  const boardShadow = isActive
+    ? currentTurn === 'blue'
+      ? '0 0 28px 6px rgba(0,207,255,0.14)'
+      : '0 0 28px 6px rgba(255,45,85,0.14)'
+    : 'none';
 
   return (
     <div
-      className={boardClass}
       style={{
         background: '#0C0C22',
         padding: '10px',
         borderRadius: '10px',
         border: '1px solid rgba(170,170,255,0.07)',
+        boxShadow: boardShadow,
+        transition: 'box-shadow 0.6s ease',
       }}
     >
       <div
@@ -55,7 +59,7 @@ export default function Grid({
               } else if (
                 gameStatus === 'playing' &&
                 myColor === currentTurn &&
-                cell.owner === myColor
+                (cell.owner === myColor || cell.owner === null)
               ) {
                 clickable = true;
               }
