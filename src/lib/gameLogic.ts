@@ -20,7 +20,7 @@ export function getAdjacentCells(row: number, col: number): [number, number][] {
 
 export function placeStartingCircle(grid: Grid, row: number, col: number, player: Player): Grid {
   const g: Grid = JSON.parse(JSON.stringify(grid));
-  g[row][col] = { owner: player, value: 1 };
+  g[row][col] = { owner: player, value: 3 };
   return g;
 }
 
