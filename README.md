@@ -8,22 +8,6 @@ A real-time, two-player grid conquest game with a neo-arcade aesthetic. Pick a s
 
 ---
 
-## Screenshots
-
-| Lobby | In-game HUD |
-|:---:|:---:|
-| <img src="https://github.com/user-attachments/assets/db84bced-2f58-498c-b2d5-41ac93ff66f7" width="320" /> | <img src="https://github.com/user-attachments/assets/d9b54c07-9505-47bd-98e4-04e54238e5d9" width="320" /> |
-
-| Chain reaction | Live chat |
-|:---:|:---:|
-| <img src="https://github.com/user-attachments/assets/40d42b4c-7af8-47b5-872d-765338c69afa" width="320" /> | <img src="https://github.com/user-attachments/assets/79b78c92-7038-4a92-bdfa-acd5bd8980ea" width="320" /> |
-
-| Victory |
-|:---:|
-| <img src="https://github.com/user-attachments/assets/eae6fcc1-d598-479a-a4b1-c5fcf89d8073" width="320" /> |
-
----
-
 ## Features
 
 ### Multiplayer
