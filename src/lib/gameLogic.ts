@@ -79,3 +79,56 @@ export function checkWinner(grid: Grid): Player | null {
 export function nextTurn(current: Player): Player {
   return current === 'blue' ? 'red' : 'blue';
 }
+
+export interface ExplosionStep {
+  explodingCells: [number, number][];
+  receivingCells: [number, number][];
+  gridAfter: Grid;
+}
+
+/** Returns the initial grid (after +1) plus each wave of explosions separately, for animation. */
+export function processMoveStepped(
+  grid: Grid,
+  row: number,
+  col: number,
+  player: Player
+): { initialGrid: Grid; steps: ExplosionStep[] } {
+  if (grid[row][col].owner !== null && grid[row][col].owner !== player) {
+    return { initialGrid: grid, steps: [] };
+  }
+
+  const g: Grid = JSON.parse(JSON.stringify(grid));
+  g[row][col] = { owner: player, value: g[row][col].value + 1 };
+  const initialGrid: Grid = JSON.parse(JSON.stringify(g));
+  const steps: ExplosionStep[] = [];
+
+  let wave: [number, number][] = [];
+  if (g[row][col].value >= getCriticalMass(row, col)) wave.push([row, col]);
+
+  while (wave.length > 0) {
+    const explodingCells = wave.filter(([r, c]) => g[r][c].value >= getCriticalMass(r, c));
+    if (explodingCells.length === 0) break;
+
+    const receivingSet = new Set<string>();
+    const receivingCells: [number, number][] = [];
+    const nextWaveSet = new Set<string>();
+    const nextWave: [number, number][] = [];
+
+    for (const [r, c] of explodingCells) {
+      g[r][c] = { owner: null, value: 0 };
+      for (const [nr, nc] of getAdjacentCells(r, c)) {
+        g[nr][nc] = { owner: player, value: g[nr][nc].value + 1 };
+        const k = `${nr},${nc}`;
+        if (!receivingSet.has(k)) { receivingSet.add(k); receivingCells.push([nr, nc]); }
+        if (g[nr][nc].value >= getCriticalMass(nr, nc) && !nextWaveSet.has(k)) {
+          nextWaveSet.add(k); nextWave.push([nr, nc]);
+        }
+      }
+    }
+
+    steps.push({ explodingCells, receivingCells, gridAfter: JSON.parse(JSON.stringify(g)) });
+    wave = nextWave;
+  }
+
+  return { initialGrid, steps };
+}

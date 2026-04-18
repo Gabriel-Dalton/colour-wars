@@ -94,9 +94,12 @@ export default function Home() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '28px 20px',
+        padding: '28px 16px',
         position: 'relative',
         overflow: 'hidden',
+        width: '100%',
+        maxWidth: '100vw',
+        boxSizing: 'border-box',
       }}
     >
       {/* Ambient orb — cyan, top-right */}
@@ -106,8 +109,8 @@ export default function Home() {
           position: 'absolute',
           top: '-140px',
           right: '-110px',
-          width: '460px',
-          height: '460px',
+          width: 'min(460px, 70vw)',
+          height: 'min(460px, 70vw)',
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(0,207,255,0.1) 0%, transparent 62%)',
           pointerEvents: 'none',
@@ -120,8 +123,8 @@ export default function Home() {
           position: 'absolute',
           bottom: '-120px',
           left: '-90px',
-          width: '420px',
-          height: '420px',
+          width: 'min(420px, 70vw)',
+          height: 'min(420px, 70vw)',
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(255,45,85,0.1) 0%, transparent 62%)',
           pointerEvents: 'none',
@@ -136,7 +139,7 @@ export default function Home() {
         <h1
           className="ff-bebas"
           style={{
-            fontSize: 'clamp(82px, 22vw, 144px)',
+            fontSize: 'clamp(56px, 18vw, 144px)',
             lineHeight: 0.84,
             margin: 0,
             letterSpacing: '0.04em',
@@ -285,7 +288,7 @@ export default function Home() {
         </div>
 
         {/* Letter inputs + go */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch', minWidth: 0 }}>
           {[
             {
               ref: input1Ref,
@@ -313,6 +316,7 @@ export default function Home() {
               autoComplete="off"
               style={{
                 flex: 1,
+                minWidth: 0,
                 height: '72px',
                 background: '#0D0D1E',
                 border: '1px solid rgba(255,45,85,0.28)',

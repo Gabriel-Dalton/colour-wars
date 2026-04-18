@@ -6,12 +6,13 @@ import { supabase } from '@/lib/supabase';
 import { GameRow, Player } from '@/lib/types';
 import {
   placeStartingCircle,
-  processMove,
+  processMoveStepped,
   checkWinner,
   nextTurn,
   countCircles,
+  getAdjacentCells,
 } from '@/lib/gameLogic';
-import Grid from '@/components/Grid';
+import Grid, { FlyingOrbData } from '@/components/Grid';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 function getOrCreatePlayerId(): string {
@@ -30,7 +31,14 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [flyingOrbs, setFlyingOrbs] = useState<FlyingOrbData[]>([]);
+  const [explodingCells, setExplodingCells] = useState<Set<string>>(new Set());
+  const [receivingCells, setReceivingCells] = useState<Set<string>>(new Set());
+  const [showOverlay, setShowOverlay] = useState(false);
+  const animatingRef = useRef(false);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
+  const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
   // Extracted so it can be called on reconnect without re-running the join logic
@@ -66,6 +74,24 @@ export default function GameClient({ roomId }: { roomId: string }) {
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [roomId, subscribe]);
+
+  // Delay the win overlay so both players can see the final board state
+  useEffect(() => {
+    if (!game) return;
+    const status = game.status;
+    const wasFinished = prevStatusRef.current === 'finished';
+    prevStatusRef.current = status;
+
+    if (status === 'finished' && !wasFinished) {
+      if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current);
+      overlayTimerRef.current = setTimeout(() => setShowOverlay(true), 2600);
+    }
+    if (status !== 'finished') {
+      setShowOverlay(false);
+      if (overlayTimerRef.current) { clearTimeout(overlayTimerRef.current); overlayTimerRef.current = null; }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.status]);
 
   async function initGame(pid: string) {
     const { data, error: fetchError } = await supabase
@@ -122,7 +148,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
       } else if (status === 'placement_red') {
         if (myColor !== 'red' || grid[row][col].owner !== null) return;
       } else if (status === 'playing') {
-        if (current_turn !== myColor || grid[row][col].owner !== myColor) return;
+        if (current_turn !== myColor) return;
+        if (grid[row][col].owner !== null && grid[row][col].owner !== myColor) return;
       } else {
         return;
       }
@@ -142,18 +169,63 @@ export default function GameClient({ roomId }: { roomId: string }) {
             .update({ grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0 })
             .eq('id', roomId);
         } else {
-          const newGrid = processMove(grid, row, col, myColor!);
-          const winner = checkWinner(newGrid);
-          await supabase
-            .from('games')
-            .update({
-              grid: newGrid,
+          // Animated explosion sequence
+          animatingRef.current = true;
+          const color = myColor === 'blue' ? '#00CFFF' : '#FF2D55';
+          const { initialGrid, steps } = processMoveStepped(grid, row, col, myColor!);
+
+          // Show the +1 immediately
+          setGame(prev => prev ? { ...prev, grid: initialGrid } : prev);
+
+          const FLY  = 160; // ms orbs travel
+          const RECV = 200; // ms receive bounce
+          const GAP  =  20; // ms pause between chain steps
+          let t = 0;
+
+          for (let i = 0; i < steps.length; i++) {
+            const step = steps[i];
+
+            // Build flying orbs for this wave
+            const orbs: FlyingOrbData[] = [];
+            for (const [fr, fc] of step.explodingCells) {
+              for (const [tr, tc] of getAdjacentCells(fr, fc)) {
+                orbs.push({ id: `${fr},${fc}->${tr},${tc}-${i}`, fromRow: fr, fromCol: fc, toRow: tr, toCol: tc, color });
+              }
+            }
+
+            const delay = t;
+            setTimeout(() => {
+              setExplodingCells(new Set(step.explodingCells.map(([r, c]) => `${r},${c}`)));
+              setFlyingOrbs(orbs);
+            }, delay);
+
+            setTimeout(() => {
+              setFlyingOrbs([]);
+              setExplodingCells(new Set());
+              setGame(prev => prev ? { ...prev, grid: step.gridAfter } : prev);
+              setReceivingCells(new Set(step.receivingCells.map(([r, c]) => `${r},${c}`)));
+            }, delay + FLY);
+
+            setTimeout(() => setReceivingCells(new Set()), delay + FLY + RECV);
+
+            t += FLY + RECV + GAP;
+          }
+
+          // Push final state to DB after all animations complete
+          setTimeout(async () => {
+            const finalGrid = steps.length > 0 ? steps[steps.length - 1].gridAfter : initialGrid;
+            const winner = checkWinner(finalGrid);
+            await supabase.from('games').update({
+              grid: finalGrid,
               current_turn: winner ? current_turn : nextTurn(myColor!),
               winner: winner ?? null,
               status: winner ? 'finished' : 'playing',
               move_count: (game.move_count ?? 0) + 1,
-            })
-            .eq('id', roomId);
+            }).eq('id', roomId);
+            animatingRef.current = false;
+            setSubmitting(false);
+          }, t);
+          return; // skip the finally setSubmitting(false)
         }
       } finally {
         setSubmitting(false);
@@ -519,6 +591,9 @@ export default function GameClient({ roomId }: { roomId: string }) {
         currentTurn={game.current_turn}
         isPlacingNow={isPlacingNow}
         submitting={submitting}
+        flyingOrbs={flyingOrbs}
+        explodingCells={explodingCells}
+        receivingCells={receivingCells}
       />
 
       {/* ── Share panel (waiting) ───────────────────────────── */}
@@ -631,8 +706,36 @@ export default function GameClient({ roomId }: { roomId: string }) {
         </button>
       )}
 
+      {/* ── Game-over hint — visible before overlay slides in ── */}
+      {isFinished && !showOverlay && (
+        <div
+          className="anim-slide-up-fast"
+          style={{
+            position: 'fixed',
+            bottom: '28px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 40,
+            pointerEvents: 'none',
+          }}
+        >
+          <span
+            className="ff-space"
+            style={{
+              color: winnerColor,
+              fontSize: '9px',
+              letterSpacing: '0.22em',
+              opacity: 0.6,
+              textTransform: 'uppercase',
+            }}
+          >
+            {game.winner === myColor ? 'victory — see the final board' : 'defeat — see what happened'}
+          </span>
+        </div>
+      )}
+
       {/* ── Win overlay ──────────────────────────────────────── */}
-      {isFinished && (
+      {showOverlay && (
         <div
           style={{
             position: 'fixed',
