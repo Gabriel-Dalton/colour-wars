@@ -17,9 +17,9 @@ export function getAdjacentCells(row: number, col: number): [number, number][] {
   return adj;
 }
 
-// Critical mass = number of orthogonal neighbors (corner=2, edge=3, interior=4)
-export function getCriticalMass(row: number, col: number): number {
-  return getAdjacentCells(row, col).length;
+// Uniform critical mass: every cell explodes at 4, regardless of position.
+export function getCriticalMass(_row: number, _col: number): number {
+  return 4;
 }
 
 // Place starting circle one dot below critical mass — so first click causes explosion

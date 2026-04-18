@@ -43,7 +43,7 @@ function FlyingOrb({ fromRow, fromCol, toRow, toCol, color }: Omit<FlyingOrbData
         transform: active
           ? `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`
           : 'translate(-50%, -50%)',
-        transition: active ? 'transform 0.16s cubic-bezier(0.4,0,0.2,1)' : 'none',
+        transition: active ? 'transform 0.52s cubic-bezier(0.4,0,0.2,1)' : 'none',
         pointerEvents: 'none',
         zIndex: 20,
       }}

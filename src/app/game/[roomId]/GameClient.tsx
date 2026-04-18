@@ -177,9 +177,9 @@ export default function GameClient({ roomId }: { roomId: string }) {
           // Show the +1 immediately
           setGame(prev => prev ? { ...prev, grid: initialGrid } : prev);
 
-          const FLY  = 160; // ms orbs travel
-          const RECV = 200; // ms receive bounce
-          const GAP  =  20; // ms pause between chain steps
+          const FLY  = 520; // ms orbs travel
+          const RECV = 320; // ms receive bounce
+          const GAP  = 120; // ms pause between chain steps
           let t = 0;
 
           for (let i = 0; i < steps.length; i++) {
