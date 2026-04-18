@@ -2,11 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+body { margin: 0; padding: 0; }
+
+/* Font utilities */
+.ff-bebas  { font-family: 'Bebas Neue', sans-serif; }
+.ff-orbit  { font-family: 'Orbitron', sans-serif; }
+.ff-space  { font-family: 'Space Mono', monospace; }
+
+/* Scanline CRT overlay */
+.scanlines::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.055) 2px,
+    rgba(0, 0, 0, 0.055) 3px
+  );
+  pointer-events: none;
+  z-index: 9999;
 }
 
-body {
-  margin: 0;
-  padding: 0;
+/* ── Neon glow idle ─────────────────────────────────────── */
+@keyframes neon-blue {
+  0%, 100% { box-shadow: 0 0 6px 2px rgba(0,207,255,.5), 0 0 18px 6px rgba(0,207,255,.2); }
+  50%       { box-shadow: 0 0 16px 6px rgba(0,207,255,.9), 0 0 36px 14px rgba(0,207,255,.4); }
 }
+@keyframes neon-red {
+  0%, 100% { box-shadow: 0 0 6px 2px rgba(255,45,85,.5), 0 0 18px 6px rgba(255,45,85,.2); }
+  50%       { box-shadow: 0 0 16px 6px rgba(255,45,85,.9), 0 0 36px 14px rgba(255,45,85,.4); }
+}
+
+/* ── Danger pulse (value = 3, about to explode) ─────────── */
+@keyframes danger-blue {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 12px 4px rgba(0,207,255,.7), 0 0 30px 10px rgba(0,207,255,.4);
+  }
+  50% {
+    transform: scale(1.17);
+    box-shadow: 0 0 32px 12px rgba(0,207,255,1), 0 0 60px 22px rgba(0,207,255,.65);
+  }
+}
+@keyframes danger-red {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 12px 4px rgba(255,45,85,.7), 0 0 30px 10px rgba(255,45,85,.4);
+  }
+  50% {
+    transform: scale(1.17);
+    box-shadow: 0 0 32px 12px rgba(255,45,85,1), 0 0 60px 22px rgba(255,45,85,.65);
+  }
+}
+
+/* ── Board ambient glow ─────────────────────────────────── */
+@keyframes board-blue {
+  0%, 100% { box-shadow: 0 0 22px 6px rgba(0,207,255,.1), 0 0 55px 18px rgba(0,207,255,.05); }
+  50%       { box-shadow: 0 0 36px 10px rgba(0,207,255,.22), 0 0 80px 28px rgba(0,207,255,.1); }
+}
+@keyframes board-red {
+  0%, 100% { box-shadow: 0 0 22px 6px rgba(255,45,85,.1), 0 0 55px 18px rgba(255,45,85,.05); }
+  50%       { box-shadow: 0 0 36px 10px rgba(255,45,85,.22), 0 0 80px 28px rgba(255,45,85,.1); }
+}
+
+/* ── Misc ───────────────────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes title-flicker {
+  0%, 91%, 93%, 95%, 100% { opacity: 1; }
+  92%, 94%                 { opacity: 0.8; }
+}
+
+/* ── Animation classes ──────────────────────────────────── */
+.anim-neon-blue    { animation: neon-blue    2.2s ease-in-out infinite; }
+.anim-neon-red     { animation: neon-red     2.2s ease-in-out infinite; }
+.anim-danger-blue  { animation: danger-blue  0.52s ease-in-out infinite; }
+.anim-danger-red   { animation: danger-red   0.52s ease-in-out infinite; }
+.anim-board-blue   { animation: board-blue   2.8s ease-in-out infinite; }
+.anim-board-red    { animation: board-red    2.8s ease-in-out infinite; }
+.anim-blink        { animation: blink        1s step-end infinite; }
+.anim-slide-up     { animation: slide-up     0.35s ease forwards; }
+.anim-flicker      { animation: title-flicker 9s infinite; }

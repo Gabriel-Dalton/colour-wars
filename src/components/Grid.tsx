@@ -22,11 +22,29 @@ export default function Grid({
   isPlacingNow,
   submitting,
 }: Props) {
+  const boardClass =
+    gameStatus === 'playing' || gameStatus === 'placement_blue' || gameStatus === 'placement_red'
+      ? currentTurn === 'blue'
+        ? 'anim-board-blue'
+        : 'anim-board-red'
+      : '';
+
   return (
-    <div className="bg-[#B85C42] p-3 rounded-2xl shadow-xl">
+    <div
+      className={boardClass}
+      style={{
+        background: '#0C0C22',
+        padding: '10px',
+        borderRadius: '10px',
+        border: '1px solid rgba(170,170,255,0.07)',
+      }}
+    >
       <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '6px',
+        }}
       >
         {grid.map((row, r) =>
           row.map((cell, c) => {
@@ -42,7 +60,6 @@ export default function Grid({
                 clickable = true;
               }
             }
-
             return (
               <Cell
                 key={`${r}-${c}`}

@@ -1,0 +1,1152 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "core_game_mechanics",
+        "label": "Core Game Mechanics",
+        "nodes": [
+          "readme_explosion_mechanic",
+          "readme_chain_reaction",
+          "readme_win_condition",
+          "readme_room_code"
+        ],
+        "relation": "implement",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "README.md"
+      },
+      {
+        "id": "supabase_infrastructure",
+        "label": "Supabase Infrastructure",
+        "nodes": [
+          "readme_supabase",
+          "readme_games_table",
+          "readme_realtime",
+          "readme_rls",
+          "readme_env_vars"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "README.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "next-env.d.ts",
+      "file_type": "code",
+      "source_file": "next-env.d.ts",
+      "source_location": "L1",
+      "id": "next_env_d",
+      "community": 6
+    },
+    {
+      "label": "tailwind.config.ts",
+      "file_type": "code",
+      "source_file": "tailwind.config.ts",
+      "source_location": "L1",
+      "id": "tailwind_config",
+      "community": 7
+    },
+    {
+      "label": "layout.tsx",
+      "file_type": "code",
+      "source_file": "src\\app\\layout.tsx",
+      "source_location": "L1",
+      "id": "layout",
+      "community": 5
+    },
+    {
+      "label": "RootLayout()",
+      "file_type": "code",
+      "source_file": "src\\app\\layout.tsx",
+      "source_location": "L9",
+      "id": "layout_rootlayout",
+      "community": 5
+    },
+    {
+      "label": "page.tsx",
+      "file_type": "code",
+      "source_file": "src\\app\\game\\[roomId]\\page.tsx",
+      "source_location": "L1",
+      "id": "page",
+      "community": 1
+    },
+    {
+      "label": "generateRoomCode()",
+      "file_type": "code",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L8",
+      "id": "page_generateroomcode",
+      "community": 1
+    },
+    {
+      "label": "getOrCreatePlayerId()",
+      "file_type": "code",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L16",
+      "id": "page_getorcreateplayerid",
+      "community": 1
+    },
+    {
+      "label": "createGame()",
+      "file_type": "code",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L68",
+      "id": "page_creategame",
+      "community": 1
+    },
+    {
+      "label": "joinGame()",
+      "file_type": "code",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L94",
+      "id": "page_joingame",
+      "community": 1
+    },
+    {
+      "label": "handleL1()",
+      "file_type": "code",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L103",
+      "id": "page_handlel1",
+      "community": 1
+    },
+    {
+      "label": "handleL2()",
+      "file_type": "code",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L110",
+      "id": "page_handlel2",
+      "community": 1
+    },
+    {
+      "label": "handleL2KeyDown()",
+      "file_type": "code",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L116",
+      "id": "page_handlel2keydown",
+      "community": 1
+    },
+    {
+      "label": "GameClient.tsx",
+      "file_type": "code",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L1",
+      "id": "gameclient",
+      "community": 2
+    },
+    {
+      "label": "getOrCreatePlayerId()",
+      "file_type": "code",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L17",
+      "id": "gameclient_getorcreateplayerid",
+      "community": 2
+    },
+    {
+      "label": "initGame()",
+      "file_type": "code",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L45",
+      "id": "gameclient_initgame",
+      "community": 2
+    },
+    {
+      "label": "copyLink()",
+      "file_type": "code",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L148",
+      "id": "gameclient_copylink",
+      "community": 2
+    },
+    {
+      "label": "GamePage()",
+      "file_type": "code",
+      "source_file": "src\\app\\game\\[roomId]\\page.tsx",
+      "source_location": "L3",
+      "id": "page_gamepage",
+      "community": 1
+    },
+    {
+      "label": "Cell.tsx",
+      "file_type": "code",
+      "source_file": "src\\components\\Cell.tsx",
+      "source_location": "L1",
+      "id": "cell",
+      "community": 2
+    },
+    {
+      "label": "Dot()",
+      "file_type": "code",
+      "source_file": "src\\components\\Cell.tsx",
+      "source_location": "L10",
+      "id": "cell_dot",
+      "community": 2
+    },
+    {
+      "label": "Grid.tsx",
+      "file_type": "code",
+      "source_file": "src\\components\\Grid.tsx",
+      "source_location": "L1",
+      "id": "grid",
+      "community": 2
+    },
+    {
+      "label": "gameLogic.ts",
+      "file_type": "code",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L1",
+      "id": "gamelogic",
+      "community": 3
+    },
+    {
+      "label": "createInitialGrid()",
+      "file_type": "code",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L6",
+      "id": "gamelogic_createinitialgrid",
+      "community": 3
+    },
+    {
+      "label": "getAdjacentCells()",
+      "file_type": "code",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L12",
+      "id": "gamelogic_getadjacentcells",
+      "community": 3
+    },
+    {
+      "label": "placeStartingCircle()",
+      "file_type": "code",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L21",
+      "id": "gamelogic_placestartingcircle",
+      "community": 3
+    },
+    {
+      "label": "processMove()",
+      "file_type": "code",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L27",
+      "id": "gamelogic_processmove",
+      "community": 3
+    },
+    {
+      "label": "countCircles()",
+      "file_type": "code",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L56",
+      "id": "gamelogic_countcircles",
+      "community": 3
+    },
+    {
+      "label": "checkWinner()",
+      "file_type": "code",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L68",
+      "id": "gamelogic_checkwinner",
+      "community": 3
+    },
+    {
+      "label": "nextTurn()",
+      "file_type": "code",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L75",
+      "id": "gamelogic_nextturn",
+      "community": 3
+    },
+    {
+      "label": "supabase.ts",
+      "file_type": "code",
+      "source_file": "src\\lib\\supabase.ts",
+      "source_location": "L1",
+      "id": "supabase",
+      "community": 2
+    },
+    {
+      "label": "types.ts",
+      "file_type": "code",
+      "source_file": "src\\lib\\types.ts",
+      "source_location": "L1",
+      "id": "types",
+      "community": 2
+    },
+    {
+      "label": "Color Wars",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_color_wars",
+      "community": 0
+    },
+    {
+      "label": "Real-Time Two-Player Online Grid Conquest Game",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_game_concept",
+      "community": 4
+    },
+    {
+      "label": "Supabase",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_supabase",
+      "community": 0
+    },
+    {
+      "label": "games Table (Supabase)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 11",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_games_table",
+      "community": 0
+    },
+    {
+      "label": "Supabase Realtime",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 32",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_realtime",
+      "community": 0
+    },
+    {
+      "label": "Row Level Security Policy",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 25",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_rls",
+      "community": 0
+    },
+    {
+      "label": "Environment Variables (NEXT_PUBLIC_SUPABASE_*)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 36",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_env_vars",
+      "community": 0
+    },
+    {
+      "label": "Next.js",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 48",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_nextjs",
+      "community": 0
+    },
+    {
+      "label": "Vercel Deployment",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 53",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_vercel",
+      "community": 0
+    },
+    {
+      "label": "6-Letter Room Code",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 62",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_room_code",
+      "community": 4
+    },
+    {
+      "label": "Circle Explosion Mechanic (split at 4)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 65",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_explosion_mechanic",
+      "community": 4
+    },
+    {
+      "label": "Chain Reaction Mechanic",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 66",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_chain_reaction",
+      "community": 4
+    },
+    {
+      "label": "Win Condition (own every circle)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 67",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_win_condition",
+      "community": 4
+    },
+    {
+      "label": "Rationale: No Auth Needed for Game",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 24",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_rationale_no_auth",
+      "community": 0
+    },
+    {
+      "label": "Rationale: REPLICA IDENTITY FULL for Realtime",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "line 29",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_rationale_replica_identity",
+      "community": 0
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\layout.tsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "_src": "layout",
+      "_tgt": "layout_rootlayout",
+      "source": "layout",
+      "target": "layout_rootlayout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "supabase",
+      "source": "page",
+      "target": "supabase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "gamelogic",
+      "source": "page",
+      "target": "gamelogic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "page_generateroomcode",
+      "source": "page",
+      "target": "page_generateroomcode",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "page_getorcreateplayerid",
+      "source": "page",
+      "target": "page_getorcreateplayerid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "page_creategame",
+      "source": "page",
+      "target": "page_creategame",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L94",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "page_joingame",
+      "source": "page",
+      "target": "page_joingame",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L103",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "page_handlel1",
+      "source": "page",
+      "target": "page_handlel1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L110",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "page_handlel2",
+      "source": "page",
+      "target": "page_handlel2",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L116",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "page_handlel2keydown",
+      "source": "page",
+      "target": "page_handlel2keydown",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\page.tsx",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "gameclient",
+      "source": "page",
+      "target": "gameclient",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\page.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "page",
+      "_tgt": "page_gamepage",
+      "source": "page",
+      "target": "page_gamepage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L72",
+      "weight": 1.0,
+      "_src": "page_creategame",
+      "_tgt": "page_generateroomcode",
+      "source": "page_generateroomcode",
+      "target": "page_creategame",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L71",
+      "weight": 1.0,
+      "_src": "page_creategame",
+      "_tgt": "page_getorcreateplayerid",
+      "source": "page_getorcreateplayerid",
+      "target": "page_creategame",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\page.tsx",
+      "source_location": "L118",
+      "weight": 1.0,
+      "_src": "page_handlel2keydown",
+      "_tgt": "page_joingame",
+      "source": "page_joingame",
+      "target": "page_handlel2keydown",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "_src": "gameclient",
+      "_tgt": "supabase",
+      "source": "gameclient",
+      "target": "supabase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "gameclient",
+      "_tgt": "types",
+      "source": "gameclient",
+      "target": "types",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "_src": "gameclient",
+      "_tgt": "gamelogic",
+      "source": "gameclient",
+      "target": "gamelogic",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "_src": "gameclient",
+      "_tgt": "grid",
+      "source": "gameclient",
+      "target": "grid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "_src": "gameclient",
+      "_tgt": "gameclient_getorcreateplayerid",
+      "source": "gameclient",
+      "target": "gameclient_getorcreateplayerid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L45",
+      "weight": 1.0,
+      "_src": "gameclient",
+      "_tgt": "gameclient_initgame",
+      "source": "gameclient",
+      "target": "gameclient_initgame",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\app\\game\\[roomId]\\GameClient.tsx",
+      "source_location": "L148",
+      "weight": 1.0,
+      "_src": "gameclient",
+      "_tgt": "gameclient_copylink",
+      "source": "gameclient",
+      "target": "gameclient_copylink",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\components\\Cell.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "cell",
+      "_tgt": "types",
+      "source": "cell",
+      "target": "types",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\components\\Cell.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "_src": "cell",
+      "_tgt": "cell_dot",
+      "source": "cell",
+      "target": "cell_dot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\components\\Grid.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "_src": "grid",
+      "_tgt": "cell",
+      "source": "cell",
+      "target": "grid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\components\\Grid.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "_src": "grid",
+      "_tgt": "types",
+      "source": "grid",
+      "target": "types",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "_src": "gamelogic",
+      "_tgt": "types",
+      "source": "gamelogic",
+      "target": "types",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_src": "gamelogic",
+      "_tgt": "gamelogic_createinitialgrid",
+      "source": "gamelogic",
+      "target": "gamelogic_createinitialgrid",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "_src": "gamelogic",
+      "_tgt": "gamelogic_getadjacentcells",
+      "source": "gamelogic",
+      "target": "gamelogic_getadjacentcells",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "_src": "gamelogic",
+      "_tgt": "gamelogic_placestartingcircle",
+      "source": "gamelogic",
+      "target": "gamelogic_placestartingcircle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "_src": "gamelogic",
+      "_tgt": "gamelogic_processmove",
+      "source": "gamelogic",
+      "target": "gamelogic_processmove",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "_src": "gamelogic",
+      "_tgt": "gamelogic_countcircles",
+      "source": "gamelogic",
+      "target": "gamelogic_countcircles",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L68",
+      "weight": 1.0,
+      "_src": "gamelogic",
+      "_tgt": "gamelogic_checkwinner",
+      "source": "gamelogic",
+      "target": "gamelogic_checkwinner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L75",
+      "weight": 1.0,
+      "_src": "gamelogic",
+      "_tgt": "gamelogic_nextturn",
+      "source": "gamelogic",
+      "target": "gamelogic_nextturn",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L44",
+      "weight": 1.0,
+      "_src": "gamelogic_processmove",
+      "_tgt": "gamelogic_getadjacentcells",
+      "source": "gamelogic_getadjacentcells",
+      "target": "gamelogic_processmove",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src\\lib\\gameLogic.ts",
+      "source_location": "L69",
+      "weight": 1.0,
+      "_src": "gamelogic_checkwinner",
+      "_tgt": "gamelogic_countcircles",
+      "source": "gamelogic_countcircles",
+      "target": "gamelogic_checkwinner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 3",
+      "weight": 1.0,
+      "_src": "readme_color_wars",
+      "_tgt": "readme_game_concept",
+      "source": "readme_color_wars",
+      "target": "readme_game_concept"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 7",
+      "weight": 1.0,
+      "_src": "readme_color_wars",
+      "_tgt": "readme_supabase",
+      "source": "readme_color_wars",
+      "target": "readme_supabase"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 48",
+      "weight": 1.0,
+      "_src": "readme_color_wars",
+      "_tgt": "readme_nextjs",
+      "source": "readme_color_wars",
+      "target": "readme_nextjs"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 53",
+      "weight": 1.0,
+      "_src": "readme_color_wars",
+      "_tgt": "readme_vercel",
+      "source": "readme_color_wars",
+      "target": "readme_vercel"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "README.md",
+      "source_location": "line 11",
+      "weight": 0.9,
+      "_src": "readme_games_table",
+      "_tgt": "readme_color_wars",
+      "source": "readme_color_wars",
+      "target": "readme_games_table"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 62",
+      "weight": 1.0,
+      "_src": "readme_game_concept",
+      "_tgt": "readme_room_code",
+      "source": "readme_game_concept",
+      "target": "readme_room_code"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 65",
+      "weight": 1.0,
+      "_src": "readme_game_concept",
+      "_tgt": "readme_explosion_mechanic",
+      "source": "readme_game_concept",
+      "target": "readme_explosion_mechanic"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 66",
+      "weight": 1.0,
+      "_src": "readme_game_concept",
+      "_tgt": "readme_chain_reaction",
+      "source": "readme_game_concept",
+      "target": "readme_chain_reaction"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 67",
+      "weight": 1.0,
+      "_src": "readme_game_concept",
+      "_tgt": "readme_win_condition",
+      "source": "readme_game_concept",
+      "target": "readme_win_condition"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 11",
+      "weight": 1.0,
+      "_src": "readme_supabase",
+      "_tgt": "readme_games_table",
+      "source": "readme_supabase",
+      "target": "readme_games_table"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 32",
+      "weight": 1.0,
+      "_src": "readme_supabase",
+      "_tgt": "readme_realtime",
+      "source": "readme_supabase",
+      "target": "readme_realtime"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 39",
+      "weight": 1.0,
+      "_src": "readme_env_vars",
+      "_tgt": "readme_supabase",
+      "source": "readme_supabase",
+      "target": "readme_env_vars"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 25",
+      "weight": 1.0,
+      "_src": "readme_games_table",
+      "_tgt": "readme_rls",
+      "source": "readme_games_table",
+      "target": "readme_rls"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 29",
+      "weight": 1.0,
+      "_src": "readme_games_table",
+      "_tgt": "readme_realtime",
+      "source": "readme_games_table",
+      "target": "readme_realtime"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 29",
+      "weight": 1.0,
+      "_src": "readme_rationale_replica_identity",
+      "_tgt": "readme_realtime",
+      "source": "readme_realtime",
+      "target": "readme_rationale_replica_identity"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 24",
+      "weight": 1.0,
+      "_src": "readme_rationale_no_auth",
+      "_tgt": "readme_rls",
+      "source": "readme_rls",
+      "target": "readme_rationale_no_auth"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 36",
+      "weight": 1.0,
+      "_src": "readme_nextjs",
+      "_tgt": "readme_env_vars",
+      "source": "readme_env_vars",
+      "target": "readme_nextjs"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "line 58",
+      "weight": 1.0,
+      "_src": "readme_vercel",
+      "_tgt": "readme_env_vars",
+      "source": "readme_env_vars",
+      "target": "readme_vercel"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md",
+      "source_location": "line 65-66",
+      "weight": 0.85,
+      "_src": "readme_explosion_mechanic",
+      "_tgt": "readme_chain_reaction",
+      "source": "readme_explosion_mechanic",
+      "target": "readme_chain_reaction"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "core_game_mechanics",
+      "label": "Core Game Mechanics",
+      "nodes": [
+        "readme_explosion_mechanic",
+        "readme_chain_reaction",
+        "readme_win_condition",
+        "readme_room_code"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "README.md"
+    },
+    {
+      "id": "supabase_infrastructure",
+      "label": "Supabase Infrastructure",
+      "nodes": [
+        "readme_supabase",
+        "readme_games_table",
+        "readme_realtime",
+        "readme_rls",
+        "readme_env_vars"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    }
+  ]
+}

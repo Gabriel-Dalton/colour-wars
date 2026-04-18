@@ -36,11 +36,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
   useEffect(() => {
     const pid = getOrCreatePlayerId();
     initGame(pid);
-
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId]);
@@ -91,15 +88,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
       .channel(`game:${roomId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'games',
-          filter: `id=eq.${roomId}`,
-        },
-        (payload) => {
-          setGame(payload.new as GameRow);
-        }
+        { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${roomId}` },
+        (payload) => setGame(payload.new as GameRow)
       )
       .subscribe();
   }
@@ -107,7 +97,6 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const handleCellClick = useCallback(
     async (row: number, col: number) => {
       if (!game || submitting) return;
-
       const { status, current_turn, grid } = game;
 
       if (status === 'placement_blue' && myColor === 'blue') {
@@ -128,12 +117,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
         const newGrid = placeStartingCircle(grid, row, col, 'red');
         await supabase
           .from('games')
-          .update({
-            grid: newGrid,
-            status: 'playing',
-            current_turn: 'blue',
-            move_count: 0,
-          })
+          .update({ grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0 })
           .eq('id', roomId);
         setSubmitting(false);
         return;
@@ -167,23 +151,30 @@ export default function GameClient({ roomId }: { roomId: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  /* ── Loading ────────────────────────────────────────────── */
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900">
-        <p className="text-white text-xl font-bold animate-pulse">Loading...</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#06060F' }}>
+        <span className="ff-orbit anim-blink" style={{ color: 'rgba(0,207,255,0.6)', fontSize: '13px', letterSpacing: '0.25em' }}>
+          CONNECTING...
+        </span>
       </div>
     );
   }
 
+  /* ── Error ──────────────────────────────────────────────── */
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 gap-4 p-6">
-        <p className="text-red-400 text-xl text-center">{error}</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#06060F', gap: '20px', padding: '24px' }}>
+        <p className="ff-space" style={{ color: '#FF2D55', fontSize: '12px', textAlign: 'center', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          {error}
+        </p>
         <button
           onClick={() => router.push('/')}
-          className="px-6 py-3 bg-[#29C5E6] text-white font-bold rounded-xl"
+          className="ff-bebas"
+          style={{ padding: '14px 32px', background: 'transparent', border: '2px solid rgba(0,207,255,0.6)', color: '#00CFFF', fontSize: '22px', letterSpacing: '0.1em', cursor: 'pointer' }}
         >
-          Back to Home
+          BACK HOME
         </button>
       </div>
     );
@@ -191,6 +182,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
 
   if (!game) return null;
 
+  /* ── Derived state ──────────────────────────────────────── */
   const counts = countCircles(game.grid);
   const isWaiting = game.status === 'waiting';
   const isPlacingNow =
@@ -200,64 +192,194 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const isMyTurn = game.status === 'playing' && game.current_turn === myColor;
 
   function statusText(): string {
-    if (isWaiting) return 'Waiting for opponent to join...';
-    if (game!.status === 'placement_blue') {
-      return myColor === 'blue'
-        ? 'Pick your starting position'
-        : 'Blue is choosing their starting position...';
-    }
-    if (game!.status === 'placement_red') {
-      return myColor === 'red'
-        ? 'Pick your starting position'
-        : 'Red is choosing their starting position...';
-    }
+    if (isWaiting) return 'Waiting for opponent...';
+    if (game!.status === 'placement_blue')
+      return myColor === 'blue' ? 'Pick your starting position' : 'Blue is placing...';
+    if (game!.status === 'placement_red')
+      return myColor === 'red' ? 'Pick your starting position' : 'Red is placing...';
     if (isFinished) {
       if (!myColor) return `${game!.winner === 'blue' ? 'Blue' : 'Red'} wins!`;
       return game!.winner === myColor ? 'You win!' : 'You lose!';
     }
-    if (isMyTurn) return 'Your turn — click one of your circles';
-    const turnName = game!.current_turn === 'blue' ? 'Blue' : 'Red';
-    return `${turnName}'s turn...`;
+    if (isMyTurn) return 'Your turn — click a circle';
+    return `${game!.current_turn === 'blue' ? 'Blue' : 'Red'}'s turn...`;
   }
 
-  const playerLabel = myColor
-    ? `You are ${myColor === 'blue' ? '🔵 Blue' : '🔴 Red'}`
-    : 'Spectating';
+  const blueIsActive = game.status === 'playing' && game.current_turn === 'blue';
+  const redIsActive  = game.status === 'playing' && game.current_turn === 'red';
 
+  /* ── Game UI ────────────────────────────────────────────── */
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#D4785A] p-4 gap-5">
-      <div className="flex flex-col items-center gap-1">
-        <h1 className="text-3xl font-black text-white tracking-tight drop-shadow">
-          COLOR WARS
-        </h1>
-        <span className="text-white/70 text-sm font-medium">{playerLabel}</span>
-      </div>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#06060F',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        padding: '20px 16px 28px',
+        gap: '16px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Ambient top glow follows active player */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '500px',
+          height: '220px',
+          background: blueIsActive
+            ? 'radial-gradient(ellipse at center top, rgba(0,207,255,0.07) 0%, transparent 70%)'
+            : redIsActive
+            ? 'radial-gradient(ellipse at center top, rgba(255,45,85,0.07) 0%, transparent 70%)'
+            : 'none',
+          pointerEvents: 'none',
+          transition: 'background 1.2s ease',
+        }}
+      />
 
-      {/* Scoreboard */}
-      <div className="flex gap-4">
+      {/* Title wordmark */}
+      <h1
+        className="ff-bebas"
+        style={{
+          color: 'rgba(170,170,255,0.4)',
+          fontSize: '18px',
+          letterSpacing: '0.35em',
+          margin: 0,
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        COLOUR WARS
+      </h1>
+
+      {/* ── HUD ─────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: 'flex',
+          width: '100%',
+          maxWidth: '360px',
+          alignItems: 'center',
+          gap: '8px',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {/* Blue score */}
         <div
-          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-            myColor === 'blue' ? 'bg-white/30 ring-2 ring-white/50' : 'bg-white/15'
-          }`}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '10px 6px',
+            background: myColor === 'blue' ? 'rgba(0,207,255,0.07)' : 'transparent',
+            border: `1px solid ${myColor === 'blue' ? 'rgba(0,207,255,0.28)' : 'rgba(0,207,255,0.08)'}`,
+            borderRadius: '8px',
+            transition: 'all 0.4s ease',
+          }}
         >
-          <div className="w-3.5 h-3.5 rounded-full bg-[#29C5E6] shadow" />
-          <span className="text-white font-bold text-lg leading-none">{counts.blue}</span>
+          <span
+            className="ff-orbit"
+            style={{
+              color: '#00CFFF',
+              fontSize: '36px',
+              fontWeight: 900,
+              lineHeight: 1,
+              textShadow: blueIsActive
+                ? '0 0 14px rgba(0,207,255,0.9), 0 0 30px rgba(0,207,255,0.45)'
+                : 'none',
+              transition: 'text-shadow 0.4s ease',
+            }}
+          >
+            {counts.blue}
+          </span>
+          <span
+            className="ff-space"
+            style={{ color: 'rgba(0,207,255,0.4)', fontSize: '8px', letterSpacing: '0.18em', marginTop: '3px' }}
+          >
+            {myColor === 'blue' ? '▶ YOU' : 'BLUE'}
+          </span>
         </div>
+
+        {/* Center code */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', padding: '0 4px' }}>
+          <span
+            className="ff-orbit"
+            style={{ color: 'rgba(170,170,255,0.55)', fontSize: '22px', fontWeight: 700, letterSpacing: '0.22em' }}
+          >
+            {roomId}
+          </span>
+          <span className="ff-space" style={{ color: 'rgba(170,170,255,0.18)', fontSize: '7px', letterSpacing: '0.18em' }}>
+            ROOM
+          </span>
+        </div>
+
+        {/* Red score */}
         <div
-          className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-            myColor === 'red' ? 'bg-white/30 ring-2 ring-white/50' : 'bg-white/15'
-          }`}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: '10px 6px',
+            background: myColor === 'red' ? 'rgba(255,45,85,0.07)' : 'transparent',
+            border: `1px solid ${myColor === 'red' ? 'rgba(255,45,85,0.28)' : 'rgba(255,45,85,0.08)'}`,
+            borderRadius: '8px',
+            transition: 'all 0.4s ease',
+          }}
         >
-          <div className="w-3.5 h-3.5 rounded-full bg-[#E84040] shadow" />
-          <span className="text-white font-bold text-lg leading-none">{counts.red}</span>
+          <span
+            className="ff-orbit"
+            style={{
+              color: '#FF2D55',
+              fontSize: '36px',
+              fontWeight: 900,
+              lineHeight: 1,
+              textShadow: redIsActive
+                ? '0 0 14px rgba(255,45,85,0.9), 0 0 30px rgba(255,45,85,0.45)'
+                : 'none',
+              transition: 'text-shadow 0.4s ease',
+            }}
+          >
+            {counts.red}
+          </span>
+          <span
+            className="ff-space"
+            style={{ color: 'rgba(255,45,85,0.4)', fontSize: '8px', letterSpacing: '0.18em', marginTop: '3px' }}
+          >
+            {myColor === 'red' ? '▶ YOU' : 'RED'}
+          </span>
         </div>
       </div>
 
-      {/* Room code badge */}
-      <div className="text-white/60 text-xs font-mono tracking-widest">
-        ROOM: {roomId}
+      {/* Status */}
+      <div
+        className="ff-space"
+        style={{
+          padding: '9px 20px',
+          background: isMyTurn || isPlacingNow ? 'rgba(255,255,255,0.05)' : 'transparent',
+          border: `1px solid ${isMyTurn || isPlacingNow ? 'rgba(255,255,255,0.1)' : 'transparent'}`,
+          borderRadius: '6px',
+          color: isMyTurn || isPlacingNow ? 'rgba(240,240,255,0.9)' : 'rgba(170,170,255,0.32)',
+          fontSize: '10px',
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          textAlign: 'center',
+          transition: 'all 0.3s ease',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        {statusText()}
       </div>
 
+      {/* Grid */}
       <Grid
         grid={game.grid}
         onCellClick={handleCellClick}
@@ -268,68 +390,197 @@ export default function GameClient({ roomId }: { roomId: string }) {
         submitting={submitting}
       />
 
-      {/* Status message */}
-      <div
-        className={`px-5 py-2.5 rounded-2xl text-center font-bold text-base transition-all ${
-          isMyTurn || isPlacingNow
-            ? 'bg-white text-[#D4785A]'
-            : 'bg-white/20 text-white'
-        }`}
-      >
-        {statusText()}
-      </div>
-
-      {/* Share panel — only shown to blue while waiting */}
+      {/* Share panel (waiting) */}
       {isWaiting && myColor === 'blue' && (
-        <div className="flex flex-col items-center gap-3 bg-white/15 rounded-2xl p-5 w-full max-w-xs">
-          <p className="text-white/80 text-sm">Share this code with your opponent:</p>
-          <span className="font-mono font-black text-3xl text-white tracking-[0.3em]">
-            {roomId}
-          </span>
+        <div
+          className="anim-slide-up"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '14px',
+            padding: '24px 20px',
+            background: '#0D0D22',
+            border: '1px solid rgba(0,207,255,0.18)',
+            borderRadius: '10px',
+            width: '100%',
+            maxWidth: '320px',
+            boxShadow: '0 0 40px rgba(0,207,255,0.06)',
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
+          <p
+            className="ff-space"
+            style={{ color: 'rgba(170,170,255,0.35)', fontSize: '9px', letterSpacing: '0.18em', margin: 0, textTransform: 'uppercase' }}
+          >
+            Share code with opponent
+          </p>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {roomId.split('').map((char, i) => (
+              <div
+                key={i}
+                style={{
+                  width: '64px',
+                  height: '72px',
+                  background: '#0A0A1E',
+                  border: '2px solid rgba(0,207,255,0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 18px rgba(0,207,255,0.12)',
+                }}
+              >
+                <span className="ff-orbit" style={{ color: '#00CFFF', fontSize: '38px', fontWeight: 900 }}>
+                  {char}
+                </span>
+              </div>
+            ))}
+          </div>
+
           <button
             onClick={copyLink}
-            className="px-5 py-2 bg-white text-[#D4785A] font-bold rounded-xl text-sm transition hover:bg-white/90 active:scale-95"
+            className="ff-space"
+            style={{
+              padding: '10px 28px',
+              background: 'transparent',
+              border: '1px solid rgba(0,207,255,0.35)',
+              color: '#00CFFF',
+              fontSize: '10px',
+              letterSpacing: '0.18em',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              textTransform: 'uppercase',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,207,255,0.08)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-            {copied ? 'Copied!' : 'Copy Link'}
+            {copied ? '✓ COPIED' : 'COPY LINK'}
           </button>
         </div>
       )}
 
-      {/* Back button */}
+      {/* Leave */}
       {!isFinished && (
         <button
           onClick={() => router.push('/')}
-          className="text-white/40 hover:text-white/70 text-sm transition"
+          className="ff-space"
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'rgba(170,170,255,0.18)',
+            fontSize: '10px',
+            letterSpacing: '0.12em',
+            cursor: 'pointer',
+            padding: '4px 8px',
+            textTransform: 'uppercase',
+            transition: 'color 0.15s ease',
+            position: 'relative',
+            zIndex: 1,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(170,170,255,0.45)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'rgba(170,170,255,0.18)'; }}
         >
-          ← Leave game
+          ← LEAVE
         </button>
       )}
 
-      {/* Win / lose overlay */}
+      {/* ── Win overlay ──────────────────────────────────────── */}
       {isFinished && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-6 z-50">
-          <div className="bg-white rounded-3xl p-8 text-center shadow-2xl w-full max-w-xs">
-            <div className="text-6xl mb-3">
-              {game.winner === myColor ? '🎉' : myColor ? '😔' : '🏆'}
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            zIndex: 50,
+          }}
+        >
+          <div
+            className="anim-slide-up"
+            style={{
+              background: '#0D0D22',
+              border: `2px solid ${game.winner === 'blue' ? 'rgba(0,207,255,0.6)' : 'rgba(255,45,85,0.6)'}`,
+              padding: '40px 32px',
+              textAlign: 'center',
+              width: '100%',
+              maxWidth: '300px',
+              boxShadow:
+                game.winner === 'blue'
+                  ? '0 0 70px rgba(0,207,255,0.18), 0 0 140px rgba(0,207,255,0.08)'
+                  : '0 0 70px rgba(255,45,85,0.18), 0 0 140px rgba(255,45,85,0.08)',
+            }}
+          >
+            <div
+              className="ff-orbit"
+              style={{
+                color: game.winner === 'blue' ? '#00CFFF' : '#FF2D55',
+                fontSize: '11px',
+                letterSpacing: '0.35em',
+                marginBottom: '10px',
+                textShadow:
+                  game.winner === 'blue'
+                    ? '0 0 18px rgba(0,207,255,0.85)'
+                    : '0 0 18px rgba(255,45,85,0.85)',
+              }}
+            >
+              {game.winner === 'blue' ? 'BLUE' : 'RED'} WINS
             </div>
-            <h2 className="text-3xl font-black mb-1">
-              {game.winner === myColor
-                ? 'You Win!'
-                : myColor
-                ? 'You Lose'
-                : `${game.winner === 'blue' ? 'Blue' : 'Red'} Wins!`}
+
+            <h2
+              className="ff-bebas"
+              style={{
+                fontSize: '72px',
+                lineHeight: 0.9,
+                margin: '0 0 10px',
+                color: game.winner === myColor ? '#fff' : 'rgba(170,170,255,0.4)',
+                letterSpacing: '0.02em',
+              }}
+            >
+              {game.winner === myColor ? 'VICTORY' : myColor ? 'DEFEAT' : 'GAME\nOVER'}
             </h2>
-            <p className="text-gray-400 text-sm mb-6">
-              {game.winner === 'blue' ? '🔵 Blue' : '🔴 Red'} conquered the entire board
+
+            <p
+              className="ff-space"
+              style={{
+                color: 'rgba(170,170,255,0.25)',
+                fontSize: '9px',
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                marginBottom: '28px',
+              }}
+            >
+              Board fully conquered
             </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => router.push('/')}
-                className="flex-1 py-3 bg-[#D4785A] text-white font-bold rounded-2xl hover:bg-[#C0664A] transition"
-              >
-                Play Again
-              </button>
-            </div>
+
+            <button
+              onClick={() => router.push('/')}
+              className="ff-bebas"
+              style={{
+                width: '100%',
+                padding: '18px',
+                background: 'transparent',
+                border: `2px solid ${game.winner === 'blue' ? 'rgba(0,207,255,0.65)' : 'rgba(255,45,85,0.65)'}`,
+                color: game.winner === 'blue' ? '#00CFFF' : '#FF2D55',
+                fontSize: '26px',
+                letterSpacing: '0.1em',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background =
+                  game.winner === 'blue' ? 'rgba(0,207,255,0.1)' : 'rgba(255,45,85,0.1)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              PLAY AGAIN
+            </button>
           </div>
         </div>
       )}

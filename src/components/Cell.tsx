@@ -1,36 +1,46 @@
 'use client';
 
-import { Cell as CellType, Player } from '@/lib/types';
+import { Cell as CellType } from '@/lib/types';
 
-const COLORS = {
-  blue: { circle: '#29C5E6', tile: '#C8EDF5' },
-  red: { circle: '#E84040', tile: '#F5C0C0' },
+const PALETTE = {
+  blue: { circle: '#00CFFF', cellBg: '#091420' },
+  red:  { circle: '#FF2D55', cellBg: '#180810' },
 };
 
+function Dot() {
+  return (
+    <div
+      style={{
+        width: '9px',
+        height: '9px',
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.95)',
+        boxShadow: '0 0 5px rgba(255,255,255,0.7)',
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
 function Dots({ value }: { value: number }) {
-  const dot = 'w-2.5 h-2.5 rounded-full bg-white shadow-sm';
   if (value === 1) {
     return (
-      <div className="flex items-center justify-center w-full h-full">
-        <div className={dot} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+        <Dot />
       </div>
     );
   }
   if (value === 2) {
     return (
-      <div className="flex items-center justify-center gap-1.5 w-full h-full">
-        <div className={dot} />
-        <div className={dot} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', height: '100%' }}>
+        <Dot /><Dot />
       </div>
     );
   }
   return (
-    <div className="flex flex-col items-center justify-center gap-1 w-full h-full">
-      <div className={dot} />
-      <div className="flex gap-1.5">
-        <div className={dot} />
-        <div className={dot} />
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px', width: '100%', height: '100%' }}>
+      <Dot />
+      <div style={{ display: 'flex', gap: '6px' }}><Dot /><Dot /></div>
     </div>
   );
 }
@@ -43,37 +53,57 @@ interface Props {
 }
 
 export default function Cell({ cell, clickable, isMyCircle, onClick }: Props) {
-  const colors = cell.owner ? COLORS[cell.owner] : null;
+  const palette = cell.owner ? PALETTE[cell.owner] : null;
   const isAboutToExplode = cell.value === 3;
+  const glowClass = cell.owner
+    ? isAboutToExplode
+      ? cell.owner === 'blue' ? 'anim-danger-blue' : 'anim-danger-red'
+      : cell.owner === 'blue' ? 'anim-neon-blue' : 'anim-neon-red'
+    : '';
 
   return (
     <div
-      className={`
-        w-14 h-14 rounded-xl flex items-center justify-center select-none
-        transition-colors duration-100
-        ${colors ? '' : 'bg-[#F2DFC8]'}
-        ${clickable && !cell.owner ? 'hover:bg-[#E4CEB0] cursor-pointer' : ''}
-        ${clickable && cell.owner ? 'cursor-pointer' : ''}
-        ${!clickable ? 'cursor-default' : ''}
-      `}
-      style={colors ? { backgroundColor: colors.tile } : {}}
+      style={{
+        width: '56px',
+        height: '56px',
+        borderRadius: '7px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: palette ? palette.cellBg : '#12122A',
+        cursor: clickable ? 'pointer' : 'default',
+        userSelect: 'none',
+        transition: 'background 0.1s ease',
+      }}
       onClick={clickable ? onClick : undefined}
     >
-      {cell.owner && colors && (
+      {cell.owner && palette && (
         <div
-          className={`
-            w-10 h-10 rounded-full flex items-center justify-center shadow-md
-            transition-all duration-100
-            ${isMyCircle ? 'active:scale-90' : ''}
-            ${isAboutToExplode ? 'animate-pulse' : ''}
-          `}
-          style={{ backgroundColor: colors.circle }}
+          className={glowClass}
+          style={{
+            width: '44px',
+            height: '44px',
+            borderRadius: '50%',
+            background: palette.circle,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: isMyCircle ? 'transform 0.08s ease' : undefined,
+          }}
         >
           <Dots value={cell.value} />
         </div>
       )}
+
       {!cell.owner && clickable && (
-        <div className="w-8 h-8 rounded-full border-2 border-dashed border-white/50" />
+        <div
+          style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '50%',
+            border: '2px dashed rgba(180,180,255,0.2)',
+          }}
+        />
       )}
     </div>
   );
