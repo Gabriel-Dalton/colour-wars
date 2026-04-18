@@ -99,52 +99,137 @@ export default function Chat({ roomId, myColor }: { roomId: string; myColor: Pla
 
   return (
     <>
-      {/* Incoming toast — only when panel is closed */}
-      {incoming && !open && (
-        <div
-          className="anim-slide-up-fast"
-          onClick={() => setOpen(true)}
-          style={{
-            position: 'fixed',
-            top: '18px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 60,
-            padding: '10px 18px',
-            background: '#0D0D22',
-            border: `1px solid rgba(${COLOR_RGB[incoming.from]},0.55)`,
-            borderTop: `3px solid ${COLOR_HEX[incoming.from]}`,
-            borderRadius: '4px',
-            boxShadow: `0 0 24px rgba(${COLOR_RGB[incoming.from]},0.28)`,
-            cursor: 'pointer',
-            maxWidth: '320px',
-          }}
-        >
+      {/* Incoming transmission toast — only when panel is closed */}
+      {incoming && !open && (() => {
+        const senderHex = COLOR_HEX[incoming.from];
+        const senderRgb = COLOR_RGB[incoming.from];
+        return (
           <div
-            className="ff-space"
+            role="button"
+            tabIndex={0}
+            onClick={() => setOpen(true)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true); } }}
+            className="anim-toast-deploy"
             style={{
-              color: `rgba(${COLOR_RGB[incoming.from]},0.55)`,
-              fontSize: '8px',
-              letterSpacing: '0.22em',
-              marginBottom: '4px',
+              position: 'fixed',
+              top: '18px',
+              left: '50%',
+              zIndex: 60,
+              width: 'min(340px, calc(100vw - 28px))',
+              background: '#0A0A1A',
+              border: `1px solid rgba(${senderRgb},0.38)`,
+              borderTop: `2px solid ${senderHex}`,
+              boxShadow: `0 8px 28px rgba(0,0,0,0.6), 0 0 28px rgba(${senderRgb},0.22)`,
+              cursor: 'pointer',
+              overflow: 'hidden',
             }}
           >
-            {incoming.from === 'blue' ? 'BLUE' : 'RED'} SAYS
+            {/* Scan-line sweep across the top edge */}
+            <div
+              aria-hidden
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                height: '2px',
+                width: '40%',
+                background: `linear-gradient(90deg, transparent 0%, ${senderHex} 50%, transparent 100%)`,
+                filter: `drop-shadow(0 0 6px ${senderHex})`,
+                animation: 'toast-scan 2.4s linear infinite',
+              }}
+            />
+
+            {/* Header row */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px 4px',
+                gap: '8px',
+              }}
+            >
+              <span
+                className="ff-space"
+                style={{
+                  color: `rgba(${senderRgb},0.62)`,
+                  fontSize: '9px',
+                  letterSpacing: '0.24em',
+                  textTransform: 'uppercase',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span style={{ color: senderHex, fontSize: '11px', lineHeight: 1 }}>▸</span>
+                INCOMING
+                <span style={{ opacity: 0.4 }}>·</span>
+                <span style={{ color: senderHex }}>{incoming.from === 'blue' ? 'BLUE' : 'RED'}</span>
+              </span>
+
+              {/* Signal dot */}
+              <span
+                aria-hidden
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  background: senderHex,
+                  boxShadow: `0 0 8px 1px ${senderHex}`,
+                  animation: 'pip-alert 1.1s ease-in-out infinite',
+                }}
+              />
+            </div>
+
+            {/* Message body */}
+            <div
+              style={{
+                padding: '2px 14px 10px',
+                color: 'rgba(240,240,255,0.95)',
+                fontSize: '14px',
+                lineHeight: 1.35,
+                letterSpacing: '0.01em',
+                wordBreak: 'break-word',
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {incoming.text}
+            </div>
+
+            {/* Footer hint */}
+            <div
+              style={{
+                padding: '6px 14px 8px',
+                borderTop: `1px solid rgba(${senderRgb},0.12)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span
+                className="ff-space"
+                style={{
+                  color: 'rgba(170,170,255,0.35)',
+                  fontSize: '8px',
+                  letterSpacing: '0.26em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Tap to open
+              </span>
+              <span
+                className="ff-space"
+                style={{
+                  color: `rgba(${senderRgb},0.5)`,
+                  fontSize: '10px',
+                  letterSpacing: '0.1em',
+                }}
+              >
+                ▸
+              </span>
+            </div>
           </div>
-          <div
-            className="ff-bebas"
-            style={{
-              color: COLOR_HEX[incoming.from],
-              fontSize: '18px',
-              letterSpacing: '0.05em',
-              lineHeight: 1.15,
-              wordBreak: 'break-word',
-            }}
-          >
-            {incoming.text}
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Chat panel */}
       {open && (
@@ -357,52 +442,143 @@ export default function Chat({ roomId, myColor }: { roomId: string; myColor: Pla
         </div>
       )}
 
-      {/* Toggle button */}
+      {/* ── COMMS terminal plate ─────────────────────────── */}
       <button
         onClick={() => setOpen((o) => !o)}
-        aria-label={open ? 'Close chat' : 'Open chat'}
+        aria-label={open ? 'Close comms' : 'Open comms'}
+        aria-expanded={open}
         style={{
           position: 'fixed',
           bottom: '18px',
           right: '18px',
           zIndex: 56,
-          width: '52px',
-          height: '52px',
-          borderRadius: '50%',
-          background: open ? `rgba(${myRgb},0.18)` : '#0D0D22',
-          border: `1px solid rgba(${myRgb},0.55)`,
+          height: '44px',
+          padding: '0 14px 0 12px',
+          background: open ? `rgba(${myRgb},0.12)` : '#0A0A1A',
+          border: `1px solid rgba(${myRgb},${open ? '0.7' : '0.42'})`,
+          borderTop: `3px solid ${myHex}`,
+          borderRadius: 0,
           color: myHex,
-          fontSize: '22px',
           cursor: 'pointer',
-          boxShadow: `0 4px 14px rgba(0,0,0,0.55), 0 0 18px rgba(${myRgb},0.18)`,
-          transition: 'background 0.15s ease, transform 0.15s ease',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: open
+            ? `0 4px 14px rgba(0,0,0,0.55), 0 0 22px rgba(${myRgb},0.24), inset 0 0 0 1px rgba(${myRgb},0.05)`
+            : `0 4px 14px rgba(0,0,0,0.55), 0 0 14px rgba(${myRgb},0.14)`,
+          transition: 'background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease',
+          outline: 'none',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = open ? `rgba(${myRgb},0.18)` : `rgba(${myRgb},0.08)`;
+          e.currentTarget.style.borderColor = `rgba(${myRgb},0.75)`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = open ? `rgba(${myRgb},0.12)` : '#0A0A1A';
+          e.currentTarget.style.borderColor = `rgba(${myRgb},${open ? '0.7' : '0.42'})`;
+        }}
+        onMouseDown={(e) => { e.currentTarget.style.transform = 'translateY(1px)'; }}
+        onMouseUp={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+        onFocus={(e) => { e.currentTarget.style.boxShadow = `0 4px 14px rgba(0,0,0,0.55), 0 0 0 2px rgba(${myRgb},0.5), 0 0 22px rgba(${myRgb},0.28)`; }}
+        onBlur={(e) => {
+          e.currentTarget.style.boxShadow = open
+            ? `0 4px 14px rgba(0,0,0,0.55), 0 0 22px rgba(${myRgb},0.24), inset 0 0 0 1px rgba(${myRgb},0.05)`
+            : `0 4px 14px rgba(0,0,0,0.55), 0 0 14px rgba(${myRgb},0.14)`;
+        }}
       >
-        {open ? '×' : '💬'}
+        {/* Status LED pip */}
+        <span
+          aria-hidden
+          style={{
+            width: '7px',
+            height: '7px',
+            background: myHex,
+            boxShadow: `0 0 8px 1px ${myHex}`,
+            animation: unread > 0 && !open
+              ? 'pip-alert 0.9s ease-in-out infinite'
+              : 'pip-idle 2.4s ease-in-out infinite',
+            flexShrink: 0,
+          }}
+        />
+
+        {/* Label stack: primary label + tiny subtitle */}
+        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1, gap: '2px' }}>
+          <span
+            className="ff-bebas"
+            style={{
+              color: myHex,
+              fontSize: '17px',
+              letterSpacing: '0.22em',
+              lineHeight: 1,
+            }}
+          >
+            {open ? 'CLOSE' : 'COMMS'}
+          </span>
+          <span
+            className="ff-space"
+            style={{
+              color: `rgba(${myRgb},0.45)`,
+              fontSize: '7px',
+              letterSpacing: '0.28em',
+              lineHeight: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            {open ? 'esc' : 'ch·01'}
+          </span>
+        </span>
+
+        {/* Right-edge glyph: chevron when closed, × when open */}
+        <span
+          aria-hidden
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '14px',
+            height: '14px',
+            marginLeft: '2px',
+            color: `rgba(${myRgb},0.8)`,
+          }}
+        >
+          {open ? (
+            <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square">
+              <path d="M 3 3 L 11 11 M 11 3 L 3 11" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 14 14" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="square" strokeLinejoin="miter">
+              <path d="M 5 3 L 9 7 L 5 11" />
+            </svg>
+          )}
+        </span>
+
+        {/* Unread count chip — angular, sharp-cornered */}
         {!open && unread > 0 && (
           <span
-            className="ff-orbit"
+            className="ff-orbit anim-badge-pop"
+            key={unread}
             style={{
               position: 'absolute',
-              top: '-4px',
-              right: '-4px',
-              minWidth: '20px',
+              top: '-9px',
+              right: '-9px',
+              minWidth: '22px',
               height: '20px',
-              padding: '0 5px',
-              borderRadius: '10px',
+              padding: '0 6px',
               background: myHex,
               color: '#06060F',
               fontSize: '11px',
               fontWeight: 900,
+              letterSpacing: '0.04em',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: `0 0 10px rgba(${myRgb},0.8)`,
+              boxShadow: `0 0 14px rgba(${myRgb},0.85), 0 2px 6px rgba(0,0,0,0.5)`,
+              clipPath: 'polygon(0 0, 100% 0, 100% 70%, 86% 100%, 0 100%)',
+              lineHeight: 1,
+              userSelect: 'none',
             }}
           >
-            {unread > 9 ? '9+' : unread}
+            {unread > 99 ? '99+' : unread}
           </span>
         )}
       </button>
