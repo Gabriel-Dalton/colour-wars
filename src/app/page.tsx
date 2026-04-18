@@ -6,12 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { createInitialGrid } from '@/lib/gameLogic';
 
 function generateRoomCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return code;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  return chars[Math.floor(Math.random() * chars.length)] +
+         chars[Math.floor(Math.random() * chars.length)];
 }
 
 function getOrCreatePlayerId(): string {
@@ -58,8 +55,8 @@ export default function Home() {
 
   const joinGame = async () => {
     const code = joinCode.trim().toUpperCase();
-    if (code.length !== 6) {
-      setError('Enter a valid 6-character room code.');
+    if (code.length !== 2) {
+      setError('Enter a valid 2-letter room code.');
       return;
     }
     router.push(`/game/${code}`);
@@ -106,11 +103,11 @@ export default function Home() {
             value={joinCode}
             onChange={(e) => {
               setError('');
-              setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+              setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z]/g, ''));
             }}
             onKeyDown={(e) => e.key === 'Enter' && joinGame()}
-            placeholder="XXXXXX"
-            maxLength={6}
+            placeholder="AB"
+            maxLength={2}
             className="flex-1 px-4 py-3 bg-slate-700 text-white font-mono text-lg rounded-xl border border-slate-600 focus:outline-none focus:border-[#29C5E6] tracking-widest placeholder:text-slate-500 uppercase"
           />
           <button
