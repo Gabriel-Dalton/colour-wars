@@ -7,6 +7,10 @@ export type GameStatus =
   | 'playing'
   | 'finished';
 
+// classic = can only click your own circles (strict Chain Reaction)
+// open    = can click your own OR any empty cell
+export type GameMode = 'classic' | 'open';
+
 export interface Cell {
   owner: Player | null;
   value: number;
@@ -28,4 +32,5 @@ export interface GameRow {
   rematch_room_id: string | null;
   last_move_row: number | null;
   last_move_col: number | null;
+  mode?: GameMode | null;
 }

@@ -15,7 +15,7 @@ import {
   computeImpactCells,
 } from '@/lib/gameLogic';
 import Grid, { FlyingOrbData } from '@/components/Grid';
-import Taunts from '@/components/Taunts';
+import Chat from '@/components/Chat';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 function getOrCreatePlayerId(): string {
@@ -337,8 +337,15 @@ export default function GameClient({ roomId }: { roomId: string }) {
         if (myColor !== 'red' || grid[row][col].owner !== null) return;
       } else if (status === 'playing') {
         if (current_turn !== myColor) return;
-        // Classic Chain Reaction rule: during play, you may only click cells you own.
-        if (grid[row][col].owner !== myColor) return;
+        const mode = game.mode ?? 'classic';
+        const cellOwner = grid[row][col].owner;
+        if (mode === 'classic') {
+          // Classic: you may only click cells you own.
+          if (cellOwner !== myColor) return;
+        } else {
+          // Open: you may click cells you own OR any empty cell.
+          if (cellOwner !== null && cellOwner !== myColor) return;
+        }
       } else {
         return;
       }
@@ -642,9 +649,12 @@ export default function GameClient({ roomId }: { roomId: string }) {
         </h1>
         <div
           className="ff-space"
-          style={{ color: 'rgba(170,170,255,0.2)', fontSize: '9px', letterSpacing: '0.18em' }}
+          style={{ color: 'rgba(170,170,255,0.2)', fontSize: '9px', letterSpacing: '0.18em', display: 'flex', gap: '10px', alignItems: 'center' }}
         >
-          ROOM: {roomId}
+          <span>ROOM: {roomId}</span>
+          <span style={{ color: 'rgba(170,170,255,0.35)', letterSpacing: '0.2em' }}>
+            · {(game.mode ?? 'classic').toUpperCase()}
+          </span>
         </div>
       </div>
 
@@ -839,6 +849,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
         receivingCells={receivingCells}
         capturedCells={capturedCells}
         lastImpactCells={lastImpactCells}
+        mode={game.mode ?? 'classic'}
       />
 
       {/* ── Share panel (waiting) ───────────────────────────── */}
@@ -980,7 +991,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
       )}
 
       {/* ── Quick-chat / taunts ─────────────────────────────── */}
-      <Taunts roomId={roomId} myColor={myColor} />
+      <Chat roomId={roomId} myColor={myColor} />
 
       {/* ── Win overlay ──────────────────────────────────────── */}
       {showOverlay && (

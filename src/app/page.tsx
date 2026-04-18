@@ -27,6 +27,7 @@ export default function Home() {
   const [letter2, setLetter2] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mode, setMode] = useState<'classic' | 'open'>('open');
   const input1Ref = useRef<HTMLInputElement>(null);
   const input2Ref = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -38,7 +39,7 @@ export default function Home() {
     const roomId = generateRoomCode();
     const grid = createInitialGrid();
 
-    const { error: dbError } = await supabase.from('games').insert({
+    const payload: Record<string, unknown> = {
       id: roomId,
       status: 'waiting',
       blue_player_id: playerId,
@@ -47,7 +48,16 @@ export default function Home() {
       grid,
       winner: null,
       move_count: 0,
-    });
+      mode,
+    };
+
+    let { error: dbError } = await supabase.from('games').insert(payload);
+
+    // If the `mode` column isn't in the DB yet, retry without it
+    if (dbError && dbError.message && dbError.message.includes('mode')) {
+      delete payload.mode;
+      ({ error: dbError } = await supabase.from('games').insert(payload));
+    }
 
     if (dbError) {
       setError('Failed to create game. Check your connection.');
@@ -238,6 +248,74 @@ export default function Home() {
           zIndex: 1,
         }}
       >
+        {/* Mode picker */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '4px' }}>
+          <span
+            className="ff-space"
+            style={{
+              color: 'rgba(170,170,255,0.3)',
+              fontSize: '9px',
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+            }}
+          >
+            Game Mode
+          </span>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px',
+              padding: '4px',
+              background: 'rgba(13,13,34,0.7)',
+              border: '1px solid rgba(170,170,255,0.08)',
+              borderRadius: '4px',
+            }}
+          >
+            {(['classic', 'open'] as const).map(m => {
+              const active = mode === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  className="ff-bebas"
+                  style={{
+                    padding: '10px 8px 8px',
+                    background: active ? 'rgba(0,207,255,0.12)' : 'transparent',
+                    border: `1px solid ${active ? 'rgba(0,207,255,0.55)' : 'transparent'}`,
+                    color: active ? '#00CFFF' : 'rgba(170,170,255,0.45)',
+                    fontSize: '18px',
+                    letterSpacing: '0.14em',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    borderRadius: '3px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '2px',
+                    lineHeight: 1,
+                  }}
+                >
+                  <span>{m === 'classic' ? 'CLASSIC' : 'OPEN'}</span>
+                  <span
+                    className="ff-space"
+                    style={{
+                      fontSize: '8px',
+                      letterSpacing: '0.14em',
+                      opacity: active ? 0.75 : 0.5,
+                      textTransform: 'uppercase',
+                      fontWeight: 400,
+                    }}
+                  >
+                    {m === 'classic' ? 'own circles only' : 'own + empty'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Create game */}
         <button
           onClick={createGame}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Grid as GridType, Player, GameStatus } from '@/lib/types';
+import { Grid as GridType, Player, GameStatus, GameMode } from '@/lib/types';
 import Cell from './Cell';
 
 export interface FlyingOrbData {
@@ -64,6 +64,7 @@ interface Props {
   receivingCells?: Set<string>;
   capturedCells?: Set<string>;
   lastImpactCells?: Set<string>;
+  mode?: GameMode;
 }
 
 export default function Grid({
@@ -79,6 +80,7 @@ export default function Grid({
   receivingCells = new Set(),
   capturedCells = new Set(),
   lastImpactCells = new Set(),
+  mode = 'classic',
 }: Props) {
   const isAnimating = explodingCells.size > 0 || receivingCells.size > 0 || capturedCells.size > 0 || flyingOrbs.length > 0;
   const isActive =
@@ -115,12 +117,14 @@ export default function Grid({
             if (!submitting) {
               if (isPlacingNow && cell.owner === null) {
                 clickable = true;
-              } else if (
-                gameStatus === 'playing' &&
-                myColor === currentTurn &&
-                cell.owner === myColor
-              ) {
-                clickable = true;
+              } else if (gameStatus === 'playing' && myColor === currentTurn) {
+                if (mode === 'open') {
+                  // Open mode: click own cells OR any empty cell
+                  if (cell.owner === myColor || cell.owner === null) clickable = true;
+                } else {
+                  // Classic mode: click only your own cells
+                  if (cell.owner === myColor) clickable = true;
+                }
               }
             }
             return (
