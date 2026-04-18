@@ -65,6 +65,34 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const moveKey = (g: GameRow): string =>
     `${g.status}:${g.move_count}:${g.last_move_row},${g.last_move_col}:${g.current_turn}`;
 
+  // Fields we added recently that may not exist yet in older DBs — we strip them on error to stay resilient.
+  const OPTIONAL_FIELDS = ['last_move_row', 'last_move_col', 'rematch_requested_by', 'rematch_room_id'];
+
+  // Update a game row. If the DB rejects because of missing columns (user hasn't run the ALTER TABLE),
+  // retry without those columns so gameplay still works.
+  const updateGameRow = useCallback(async (updates: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> => {
+    const { error } = await supabase.from('games').update(updates).eq('id', roomId);
+    if (!error) return { ok: true };
+
+    const message = error.message ?? '';
+    const missingOptional = OPTIONAL_FIELDS.some(f => message.includes(f));
+    if (missingOptional) {
+      const safe: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(updates)) {
+        if (!OPTIONAL_FIELDS.includes(k)) safe[k] = v;
+      }
+      const retry = await supabase.from('games').update(safe).eq('id', roomId);
+      if (!retry.error) {
+        console.warn('[colour-wars] Optional columns missing — retried without them. Run ALTER TABLE to enable the new features:', message);
+        return { ok: true };
+      }
+      console.error('[colour-wars] Retry also failed:', retry.error);
+      return { ok: false, error: retry.error.message };
+    }
+    console.error('[colour-wars] Game update failed:', error);
+    return { ok: false, error: message };
+  }, [roomId]);
+
   // Plays the explosion animation locally. Returns a promise that resolves with the final grid.
   const animateMove = useCallback((
     fromGrid: GridType,
@@ -164,8 +192,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
             prev.status === 'playing' &&
             (incoming.status === 'playing' || incoming.status === 'finished') &&
             incoming.move_count > prev.move_count &&
-            incoming.last_move_row !== null &&
-            incoming.last_move_col !== null;
+            typeof incoming.last_move_row === 'number' &&
+            typeof incoming.last_move_col === 'number';
 
           if (isPlayMove) {
             const mover: Player =
@@ -304,18 +332,14 @@ export default function GameClient({ roomId }: { roomId: string }) {
           const newGrid = placeStartingCircle(grid, row, col, 'blue');
           const nextState: GameRow = { ...game, grid: newGrid, status: 'placement_red', current_turn: 'red', last_move_row: row, last_move_col: col };
           lastAnimatedMoveKeyRef.current = moveKey(nextState);
-          await supabase
-            .from('games')
-            .update({ grid: newGrid, status: 'placement_red', current_turn: 'red', last_move_row: row, last_move_col: col })
-            .eq('id', roomId);
+          setGame(nextState); // optimistic — mover sees their placement instantly
+          await updateGameRow({ grid: newGrid, status: 'placement_red', current_turn: 'red', last_move_row: row, last_move_col: col });
         } else if (status === 'placement_red') {
           const newGrid = placeStartingCircle(grid, row, col, 'red');
           const nextState: GameRow = { ...game, grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0, last_move_row: row, last_move_col: col };
           lastAnimatedMoveKeyRef.current = moveKey(nextState);
-          await supabase
-            .from('games')
-            .update({ grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0, last_move_row: row, last_move_col: col })
-            .eq('id', roomId);
+          setGame(nextState);
+          await updateGameRow({ grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0, last_move_row: row, last_move_col: col });
         } else {
           // Mover's local animation — same helper the opponent uses when the realtime update arrives
           const finalGrid = await animateMove(grid, row, col, myColor!);
@@ -334,7 +358,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
             last_move_col: col,
           };
           lastAnimatedMoveKeyRef.current = moveKey(expectedState);
-          await supabase.from('games').update({
+          setGame(expectedState); // keep mover's UI in sync with what we just animated
+          await updateGameRow({
             grid: finalGrid,
             current_turn: newCurrentTurn,
             winner: winner ?? null,
@@ -342,13 +367,13 @@ export default function GameClient({ roomId }: { roomId: string }) {
             move_count: newMoveCount,
             last_move_row: row,
             last_move_col: col,
-          }).eq('id', roomId);
+          });
         }
       } finally {
         setSubmitting(false);
       }
     },
-    [game, myColor, roomId, submitting]
+    [game, myColor, roomId, submitting, animateMove, updateGameRow]
   );
 
   const handleRematch = async () => {
