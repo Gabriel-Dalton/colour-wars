@@ -63,8 +63,7 @@ interface Props {
   explodingCells?: Set<string>;
   receivingCells?: Set<string>;
   capturedCells?: Set<string>;
-  lastMoveRow?: number | null;
-  lastMoveCol?: number | null;
+  lastImpactCells?: Set<string>;
 }
 
 export default function Grid({
@@ -79,8 +78,7 @@ export default function Grid({
   explodingCells = new Set(),
   receivingCells = new Set(),
   capturedCells = new Set(),
-  lastMoveRow = null,
-  lastMoveCol = null,
+  lastImpactCells = new Set(),
 }: Props) {
   const isAnimating = explodingCells.size > 0 || receivingCells.size > 0 || capturedCells.size > 0 || flyingOrbs.length > 0;
   const isActive =
@@ -120,7 +118,7 @@ export default function Grid({
               } else if (
                 gameStatus === 'playing' &&
                 myColor === currentTurn &&
-                (cell.owner === myColor || cell.owner === null)
+                cell.owner === myColor
               ) {
                 clickable = true;
               }
@@ -135,7 +133,7 @@ export default function Grid({
                 isExploding={explodingCells.has(key)}
                 isReceiving={receivingCells.has(key)}
                 isCapturing={capturedCells.has(key)}
-                isLastMove={!isAnimating && lastMoveRow === r && lastMoveCol === c}
+                isLastMove={!isAnimating && lastImpactCells.has(key)}
               />
             );
           })

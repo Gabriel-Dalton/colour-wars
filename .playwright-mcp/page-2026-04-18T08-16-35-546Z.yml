@@ -1,0 +1,179 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "VCASSE VCASSE" [ref=e4] [cursor=pointer]:
+        - /url: index.html
+        - img "VCASSE" [ref=e5]
+        - text: VCASSE
+      - button "Toggle menu" [ref=e6] [cursor=pointer]
+  - generic [ref=e12]:
+    - heading "Safety, Sustainability, & Ethics" [level=1] [ref=e13]:
+      - text: Safety, Sustainability,
+      - generic [ref=e14]: "& Ethics"
+    - paragraph [ref=e15]: Vancouver's dedicated centre for responsible AI. We research, educate, and advocate across three pillars so that the people most affected by AI have a seat at the table.
+  - region "Three pillars of responsible AI" [ref=e16]:
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - paragraph [ref=e19]: Focus Areas
+        - heading "Three pillars of responsible AI" [level=2] [ref=e20]
+        - paragraph [ref=e21]: Our work spans technical safety, environmental and social sustainability, and the ethical questions that shape who benefits from AI and who bears the risk.
+      - generic [ref=e22]:
+        - article [ref=e23]:
+          - img [ref=e25]
+          - heading "Safety" [level=3] [ref=e27]
+          - paragraph [ref=e28]: Robustness, alignment, and risk-aware deployment so systems behave reliably in the real world.
+          - link "Explore safety" [ref=e29] [cursor=pointer]:
+            - /url: safety.html
+            - text: Explore safety
+            - generic [ref=e30]: →
+        - article [ref=e31]:
+          - img [ref=e33]
+          - heading "Sustainability" [level=3] [ref=e36]
+          - paragraph [ref=e37]: Energy, data, and lifecycle impacts of AI systems in a changing climate and economy.
+          - link "Explore sustainability" [ref=e38] [cursor=pointer]:
+            - /url: sustainability.html
+            - text: Explore sustainability
+            - generic [ref=e39]: →
+        - article [ref=e40]:
+          - img [ref=e42]
+          - heading "Ethics" [level=3] [ref=e44]
+          - paragraph [ref=e45]: Justice, governance, and participation so AI serves communities fairly and transparently.
+          - link "Explore ethics" [ref=e46] [cursor=pointer]:
+            - /url: ethics.html
+            - text: Explore ethics
+            - generic [ref=e47]: →
+  - region "Core programs for Vancouver" [ref=e48]:
+    - generic [ref=e49]:
+      - generic [ref=e50]:
+        - paragraph [ref=e51]: Programs
+        - heading "Core programs for Vancouver" [level=2] [ref=e52]
+        - paragraph [ref=e53]: Our programming translates research into practical action through policy support, public dialogue, and city-wide literacy work.
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - heading "Policy briefs" [level=3] [ref=e56]
+          - paragraph [ref=e57]: Research-backed briefs for municipal and provincial government so decisions on AI regulation, funding, and services are evidence-led.
+          - generic [ref=e58]: Core program
+        - generic [ref=e59]:
+          - heading "Community forums and public panels" [level=3] [ref=e60]
+          - paragraph [ref=e61]: Regular dialogues that bring together researchers, developers, policymakers, and community members around high-impact AI issues.
+          - generic [ref=e62]: Core program
+        - generic [ref=e63]:
+          - heading "Vancouver AI literacy programs" [level=3] [ref=e64]
+          - paragraph [ref=e65]: Local education programs covering what AI is, how it works, and how it affects privacy, employment, environment, and daily life.
+          - generic [ref=e66]: Core program
+  - region "Publications across all pillars" [ref=e67]:
+    - generic [ref=e68]:
+      - generic [ref=e69]:
+        - paragraph [ref=e70]: Blog
+        - heading "Publications across all pillars" [level=2] [ref=e71]
+        - paragraph [ref=e72]: Notes, briefs, and explainers from Safety, Sustainability, and Ethics.
+      - generic [ref=e73]:
+        - article [ref=e74]:
+          - generic [ref=e75]:
+            - generic [ref=e76]: Safety
+            - generic [ref=e77]: Mar 15, 2026
+            - generic [ref=e78]: 7 min read
+          - heading "Practical AI Safety Evaluations for Public-Interest Teams" [level=3] [ref=e79]
+          - paragraph [ref=e80]: A practical framework for evaluating model failure modes before deployment in civic and public-service contexts.
+          - list [ref=e81]:
+            - listitem [ref=e82]: Evaluations
+            - listitem [ref=e83]: Risk
+            - listitem [ref=e84]: Governance
+          - link "Read publication" [ref=e85] [cursor=pointer]:
+            - /url: publications/safety-evaluations-public-interest.html
+            - text: Read publication
+            - generic [ref=e86]: →
+        - article [ref=e87]:
+          - generic [ref=e88]:
+            - generic [ref=e89]: Sustainability
+            - generic [ref=e90]: Feb 27, 2026
+            - generic [ref=e91]: 6 min read
+          - heading "A Sustainability Checklist for AI Procurement" [level=3] [ref=e92]
+          - paragraph [ref=e93]: How organizations can ask better vendor questions around energy use, lifecycle impact, and reporting transparency.
+          - list [ref=e94]:
+            - listitem [ref=e95]: Climate
+            - listitem [ref=e96]: Procurement
+            - listitem [ref=e97]: Infrastructure
+          - link "Read publication" [ref=e98] [cursor=pointer]:
+            - /url: publications/sustainability-procurement-checklist.html
+            - text: Read publication
+            - generic [ref=e99]: →
+        - article [ref=e100]:
+          - generic [ref=e101]:
+            - generic [ref=e102]: Ethics
+            - generic [ref=e103]: Jan 31, 2026
+            - generic [ref=e104]: 8 min read
+          - heading "Participatory Ethics in Municipal AI Decisions" [level=3] [ref=e105]
+          - paragraph [ref=e106]: Why public-facing AI decisions should include structured resident participation, not only internal review.
+          - list [ref=e107]:
+            - listitem [ref=e108]: Inclusion
+            - listitem [ref=e109]: Policy
+            - listitem [ref=e110]: Public Deliberation
+          - link "Read publication" [ref=e111] [cursor=pointer]:
+            - /url: publications/participatory-ethics-municipal-ai.html
+            - text: Read publication
+            - generic [ref=e112]: →
+      - link "View all publications" [ref=e114] [cursor=pointer]:
+        - /url: publications.html
+  - generic [ref=e116]:
+    - heading "Contribute to the Future of Responsible AI." [level=2] [ref=e117]
+    - paragraph [ref=e118]: We serve the general public, youth and students, tech companies and developers, and policymakers. If AI affects your life, we're here for you.
+    - generic [ref=e119]:
+      - link "Get in Touch" [ref=e120] [cursor=pointer]:
+        - /url: contact.html
+      - link "About Us" [ref=e121] [cursor=pointer]:
+        - /url: about.html
+  - contentinfo [ref=e122]:
+    - generic [ref=e123]:
+      - generic [ref=e124]:
+        - generic [ref=e125]:
+          - heading "Vancouver Centre for AI Safety, Sustainability, and Ethics" [level=3] [ref=e126]
+          - paragraph [ref=e127]: Vancouver's dedicated centre for responsible AI. We research, educate, and advocate across safety, sustainability, and ethics.
+          - generic [ref=e128]:
+            - link "Share" [ref=e129] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e130]
+            - link "Email" [ref=e132] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e133]
+        - generic [ref=e135]:
+          - heading "Focus Areas" [level=4] [ref=e136]
+          - list [ref=e137]:
+            - listitem [ref=e138]:
+              - link "Safety" [ref=e139] [cursor=pointer]:
+                - /url: safety.html
+            - listitem [ref=e140]:
+              - link "Sustainability" [ref=e141] [cursor=pointer]:
+                - /url: sustainability.html
+            - listitem [ref=e142]:
+              - link "Ethics" [ref=e143] [cursor=pointer]:
+                - /url: ethics.html
+        - generic [ref=e144]:
+          - heading "Information" [level=4] [ref=e145]
+          - list [ref=e146]:
+            - listitem [ref=e147]:
+              - link "Events" [ref=e148] [cursor=pointer]:
+                - /url: events.html
+            - listitem [ref=e149]:
+              - link "Publications" [ref=e150] [cursor=pointer]:
+                - /url: publications.html
+            - listitem [ref=e151]:
+              - link "About" [ref=e152] [cursor=pointer]:
+                - /url: about.html
+            - listitem [ref=e153]:
+              - link "Contact" [ref=e154] [cursor=pointer]:
+                - /url: contact.html
+            - listitem [ref=e155]:
+              - link "Privacy Policy" [ref=e156] [cursor=pointer]:
+                - /url: privacy.html
+            - listitem [ref=e157]:
+              - link "Terms of Service" [ref=e158] [cursor=pointer]:
+                - /url: terms.html
+      - generic [ref=e159]:
+        - paragraph [ref=e160]:
+          - text: © 2026 VCASSE. All rights reserved.|A subsidiary of
+          - link "OASIS OF CHANGE, INC." [ref=e161] [cursor=pointer]:
+            - /url: https://oasisofchange.org
+        - generic [ref=e162]:
+          - img [ref=e163]
+          - text: Vancouver, BC, Canada

@@ -12,8 +12,10 @@ import {
   countCircles,
   getAdjacentCells,
   createInitialGrid,
+  computeImpactCells,
 } from '@/lib/gameLogic';
 import Grid, { FlyingOrbData } from '@/components/Grid';
+import Taunts from '@/components/Taunts';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 function getOrCreatePlayerId(): string {
@@ -44,6 +46,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const [explodingCells, setExplodingCells] = useState<Set<string>>(new Set());
   const [receivingCells, setReceivingCells] = useState<Set<string>>(new Set());
   const [capturedCells, setCapturedCells] = useState<Set<string>>(new Set());
+  const [lastImpactCells, setLastImpactCells] = useState<Set<string>>(new Set());
   const [showOverlay, setShowOverlay] = useState(false);
   const [rematchBusy, setRematchBusy] = useState(false);
   const [rematchError, setRematchError] = useState<string | null>(null);
@@ -105,6 +108,9 @@ export default function GameClient({ roomId }: { roomId: string }) {
     const { initialGrid, steps } = processMoveStepped(fromGrid, row, col, mover);
     const finalGrid: GridType = steps.length > 0 ? steps[steps.length - 1].gridAfter : initialGrid;
 
+    // Clear the previous move's impact ring — it's about to be replaced by this move's
+    setLastImpactCells(new Set());
+
     // Show the +1 immediately
     setGame(prev => prev ? { ...prev, grid: initialGrid } : prev);
 
@@ -156,6 +162,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
     return new Promise(resolve => {
       setTimeout(() => {
         animatingRef.current = false;
+        // Highlight every cell the mover now controls that changed — not just the clicked one
+        setLastImpactCells(computeImpactCells(fromGrid, finalGrid, mover));
         resolve(finalGrid);
       }, t);
     });
@@ -208,6 +216,14 @@ export default function GameClient({ roomId }: { roomId: string }) {
           }
 
           // Placements, rematch state changes, initial join, etc. — apply instantly
+          // For placement moves, highlight the just-placed cell as "last move"
+          const isPlacement =
+            (prev.status === 'placement_blue' && incoming.status === 'placement_red') ||
+            (prev.status === 'placement_red' && incoming.status === 'playing');
+          if (isPlacement) {
+            const mover: Player = prev.status === 'placement_blue' ? 'blue' : 'red';
+            setLastImpactCells(computeImpactCells(prev.grid, incoming.grid, mover));
+          }
           setGame(incoming);
           lastAnimatedMoveKeyRef.current = incomingKey;
         }
@@ -321,7 +337,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
         if (myColor !== 'red' || grid[row][col].owner !== null) return;
       } else if (status === 'playing') {
         if (current_turn !== myColor) return;
-        if (grid[row][col].owner !== null && grid[row][col].owner !== myColor) return;
+        // Classic Chain Reaction rule: during play, you may only click cells you own.
+        if (grid[row][col].owner !== myColor) return;
       } else {
         return;
       }
@@ -332,12 +349,14 @@ export default function GameClient({ roomId }: { roomId: string }) {
           const newGrid = placeStartingCircle(grid, row, col, 'blue');
           const nextState: GameRow = { ...game, grid: newGrid, status: 'placement_red', current_turn: 'red', last_move_row: row, last_move_col: col };
           lastAnimatedMoveKeyRef.current = moveKey(nextState);
+          setLastImpactCells(computeImpactCells(grid, newGrid, 'blue'));
           setGame(nextState); // optimistic — mover sees their placement instantly
           await updateGameRow({ grid: newGrid, status: 'placement_red', current_turn: 'red', last_move_row: row, last_move_col: col });
         } else if (status === 'placement_red') {
           const newGrid = placeStartingCircle(grid, row, col, 'red');
           const nextState: GameRow = { ...game, grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0, last_move_row: row, last_move_col: col };
           lastAnimatedMoveKeyRef.current = moveKey(nextState);
+          setLastImpactCells(computeImpactCells(grid, newGrid, 'red'));
           setGame(nextState);
           await updateGameRow({ grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0, last_move_row: row, last_move_col: col });
         } else {
@@ -819,8 +838,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
         explodingCells={explodingCells}
         receivingCells={receivingCells}
         capturedCells={capturedCells}
-        lastMoveRow={game.last_move_row}
-        lastMoveCol={game.last_move_col}
+        lastImpactCells={lastImpactCells}
       />
 
       {/* ── Share panel (waiting) ───────────────────────────── */}
@@ -960,6 +978,9 @@ export default function GameClient({ roomId }: { roomId: string }) {
           </span>
         </div>
       )}
+
+      {/* ── Quick-chat / taunts ─────────────────────────────── */}
+      <Taunts roomId={roomId} myColor={myColor} />
 
       {/* ── Win overlay ──────────────────────────────────────── */}
       {showOverlay && (

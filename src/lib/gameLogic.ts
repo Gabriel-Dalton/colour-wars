@@ -80,6 +80,26 @@ export function nextTurn(current: Player): Player {
   return current === 'blue' ? 'red' : 'blue';
 }
 
+/**
+ * Returns the set of cells (as "r,c" strings) whose state changed under the mover's control
+ * between two grid states. Useful as a "last move" highlight that covers explosion spread,
+ * not just the single clicked cell. Cells that were cleared by an explosion are excluded
+ * because they no longer contain a circle.
+ */
+export function computeImpactCells(before: Grid, after: Grid, mover: Player): Set<string> {
+  const impact = new Set<string>();
+  for (let r = 0; r < after.length; r++) {
+    for (let c = 0; c < after[r].length; c++) {
+      const b = before[r][c];
+      const a = after[r][c];
+      if (a.owner === mover && (a.owner !== b.owner || a.value !== b.value)) {
+        impact.add(`${r},${c}`);
+      }
+    }
+  }
+  return impact;
+}
+
 export interface ExplosionStep {
   explodingCells: [number, number][];
   receivingCells: [number, number][];

@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "WebFetch(domain:brilliant.org)"
+      "WebFetch(domain:brilliant.org)",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_navigate",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 5 http://localhost:3010/)"
     ]
   }
 }

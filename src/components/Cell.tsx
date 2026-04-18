@@ -24,7 +24,7 @@ function Dot() {
 }
 
 function Dots({ value }: { value: number }) {
-  if (value === 1) {
+  if (value <= 1) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
         <Dot />
@@ -38,9 +38,18 @@ function Dots({ value }: { value: number }) {
       </div>
     );
   }
+  if (value === 3) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', height: '100%' }}>
+        <Dot />
+        <div style={{ display: 'flex', gap: '7px' }}><Dot /><Dot /></div>
+      </div>
+    );
+  }
+  // value >= 4 — render a 2×2 grid (critical-mass look, shown briefly before explosion)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px', width: '100%', height: '100%' }}>
-      <Dot />
+      <div style={{ display: 'flex', gap: '7px' }}><Dot /><Dot /></div>
       <div style={{ display: 'flex', gap: '7px' }}><Dot /><Dot /></div>
     </div>
   );
@@ -132,14 +141,14 @@ export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding
         </div>
       )}
 
-      {isLastMove && (
+      {isLastMove && cell.owner !== null && (
         <div
           className="anim-last-move"
           style={{
             position: 'absolute',
             inset: 2,
             borderRadius: '6px',
-            border: `2px solid ${cell.owner === 'blue' ? 'rgba(0,207,255,0.85)' : cell.owner === 'red' ? 'rgba(255,45,85,0.85)' : 'rgba(255,255,255,0.7)'}`,
+            border: `2px solid ${cell.owner === 'blue' ? 'rgba(0,207,255,0.85)' : 'rgba(255,45,85,0.85)'}`,
             pointerEvents: 'none',
           }}
         />
