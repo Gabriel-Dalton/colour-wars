@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { GameRow, Player } from '@/lib/types';
+import { GameRow, Player, Grid as GridType } from '@/lib/types';
 import {
   placeStartingCircle,
   processMoveStepped,
@@ -46,12 +46,92 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const [capturedCells, setCapturedCells] = useState<Set<string>>(new Set());
   const [showOverlay, setShowOverlay] = useState(false);
   const [rematchBusy, setRematchBusy] = useState(false);
+  const [rematchError, setRematchError] = useState<string | null>(null);
   const rematchNavigatedRef = useRef(false);
   const animatingRef = useRef(false);
+  const gameRef = useRef<GameRow | null>(null);
+  const myColorRef = useRef<Player | null>(null);
+  const lastAnimatedMoveKeyRef = useRef<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const prevStatusRef = useRef<string | null>(null);
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
+
+  // Keep refs synced so the realtime handler (stable closure) can read current values
+  useEffect(() => { gameRef.current = game; }, [game]);
+  useEffect(() => { myColorRef.current = myColor; }, [myColor]);
+
+  // Unique identifier for a game-state "move" — used to prevent re-animating a move twice
+  const moveKey = (g: GameRow): string =>
+    `${g.status}:${g.move_count}:${g.last_move_row},${g.last_move_col}:${g.current_turn}`;
+
+  // Plays the explosion animation locally. Returns a promise that resolves with the final grid.
+  const animateMove = useCallback((
+    fromGrid: GridType,
+    row: number,
+    col: number,
+    mover: Player
+  ): Promise<GridType> => {
+    animatingRef.current = true;
+    const color = mover === 'blue' ? '#00CFFF' : '#FF2D55';
+    const { initialGrid, steps } = processMoveStepped(fromGrid, row, col, mover);
+    const finalGrid: GridType = steps.length > 0 ? steps[steps.length - 1].gridAfter : initialGrid;
+
+    // Show the +1 immediately
+    setGame(prev => prev ? { ...prev, grid: initialGrid } : prev);
+
+    const FLY = 520, RECV = 560, GAP = 120;
+    let t = 0;
+
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+
+      const orbs: FlyingOrbData[] = [];
+      for (const [fr, fc] of step.explodingCells) {
+        for (const [tr, tc] of getAdjacentCells(fr, fc)) {
+          orbs.push({ id: `${fr},${fc}->${tr},${tc}-${i}`, fromRow: fr, fromCol: fc, toRow: tr, toCol: tc, color });
+        }
+      }
+
+      const delay = t;
+      setTimeout(() => {
+        setExplodingCells(new Set(step.explodingCells.map(([r, c]) => `${r},${c}`)));
+        setFlyingOrbs(orbs);
+      }, delay);
+
+      const gridBeforeStep = i === 0 ? initialGrid : steps[i - 1].gridAfter;
+      const captured = step.receivingCells.filter(([r, c]) => {
+        const p = gridBeforeStep[r][c].owner;
+        return p !== null && p !== mover;
+      });
+      const reinforced = step.receivingCells.filter(([r, c]) => {
+        const p = gridBeforeStep[r][c].owner;
+        return p === null || p === mover;
+      });
+
+      setTimeout(() => {
+        setFlyingOrbs([]);
+        setExplodingCells(new Set());
+        setGame(prev => prev ? { ...prev, grid: step.gridAfter } : prev);
+        setReceivingCells(new Set(reinforced.map(([r, c]) => `${r},${c}`)));
+        setCapturedCells(new Set(captured.map(([r, c]) => `${r},${c}`)));
+      }, delay + FLY);
+
+      setTimeout(() => {
+        setReceivingCells(new Set());
+        setCapturedCells(new Set());
+      }, delay + FLY + RECV);
+
+      t += FLY + RECV + GAP;
+    }
+
+    return new Promise(resolve => {
+      setTimeout(() => {
+        animatingRef.current = false;
+        resolve(finalGrid);
+      }, t);
+    });
+  }, []);
 
   // Extracted so it can be called on reconnect without re-running the join logic
   const subscribe = useCallback(() => {
@@ -61,10 +141,51 @@ export default function GameClient({ roomId }: { roomId: string }) {
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'games', filter: `id=eq.${roomId}` },
-        (payload) => setGame(payload.new as GameRow)
+        async (payload) => {
+          const incoming = payload.new as GameRow;
+          const prev = gameRef.current;
+          const incomingKey = moveKey(incoming);
+
+          // Echo of a move this client already animated locally — just sync state
+          if (lastAnimatedMoveKeyRef.current === incomingKey) {
+            setGame(incoming);
+            return;
+          }
+
+          // If already mid-animation (shouldn't happen normally), just apply state
+          if (animatingRef.current || !prev) {
+            setGame(incoming);
+            lastAnimatedMoveKeyRef.current = incomingKey;
+            return;
+          }
+
+          // Opponent played a regular move — replay their animation before applying final state
+          const isPlayMove =
+            prev.status === 'playing' &&
+            (incoming.status === 'playing' || incoming.status === 'finished') &&
+            incoming.move_count > prev.move_count &&
+            incoming.last_move_row !== null &&
+            incoming.last_move_col !== null;
+
+          if (isPlayMove) {
+            const mover: Player =
+              incoming.winner
+                ? incoming.winner
+                : (incoming.current_turn === 'blue' ? 'red' : 'blue');
+
+            lastAnimatedMoveKeyRef.current = incomingKey;
+            await animateMove(prev.grid, incoming.last_move_row!, incoming.last_move_col!, mover);
+            setGame(incoming);
+            return;
+          }
+
+          // Placements, rematch state changes, initial join, etc. — apply instantly
+          setGame(incoming);
+          lastAnimatedMoveKeyRef.current = incomingKey;
+        }
       )
       .subscribe();
-  }, [roomId]);
+  }, [roomId, animateMove]);
 
   useEffect(() => {
     const pid = getOrCreatePlayerId();
@@ -80,7 +201,10 @@ export default function GameClient({ roomId }: { roomId: string }) {
     const handleVisibility = async () => {
       if (document.visibilityState !== 'visible') return;
       const { data } = await supabase.from('games').select('*').eq('id', roomId).single();
-      if (data) setGame(data as GameRow);
+      if (data) {
+        setGame(data as GameRow);
+        lastAnimatedMoveKeyRef.current = moveKey(data as GameRow);
+      }
       subscribe();
     };
     document.addEventListener('visibilitychange', handleVisibility);
@@ -152,6 +276,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
     }
 
     setGame(gameData);
+    lastAnimatedMoveKeyRef.current = moveKey(gameData);
     setLoading(false);
     subscribe();
   }
@@ -177,91 +302,47 @@ export default function GameClient({ roomId }: { roomId: string }) {
       try {
         if (status === 'placement_blue') {
           const newGrid = placeStartingCircle(grid, row, col, 'blue');
+          const nextState: GameRow = { ...game, grid: newGrid, status: 'placement_red', current_turn: 'red', last_move_row: row, last_move_col: col };
+          lastAnimatedMoveKeyRef.current = moveKey(nextState);
           await supabase
             .from('games')
             .update({ grid: newGrid, status: 'placement_red', current_turn: 'red', last_move_row: row, last_move_col: col })
             .eq('id', roomId);
         } else if (status === 'placement_red') {
           const newGrid = placeStartingCircle(grid, row, col, 'red');
+          const nextState: GameRow = { ...game, grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0, last_move_row: row, last_move_col: col };
+          lastAnimatedMoveKeyRef.current = moveKey(nextState);
           await supabase
             .from('games')
             .update({ grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0, last_move_row: row, last_move_col: col })
             .eq('id', roomId);
         } else {
-          // Animated explosion sequence
-          animatingRef.current = true;
-          const color = myColor === 'blue' ? '#00CFFF' : '#FF2D55';
-          const { initialGrid, steps } = processMoveStepped(grid, row, col, myColor!);
-
-          // Show the +1 immediately
-          setGame(prev => prev ? { ...prev, grid: initialGrid } : prev);
-
-          const FLY  = 520; // ms orbs travel
-          const RECV = 560; // ms receive / capture flash
-          const GAP  = 120; // ms pause between chain steps
-          let t = 0;
-
-          for (let i = 0; i < steps.length; i++) {
-            const step = steps[i];
-
-            // Build flying orbs for this wave
-            const orbs: FlyingOrbData[] = [];
-            for (const [fr, fc] of step.explodingCells) {
-              for (const [tr, tc] of getAdjacentCells(fr, fc)) {
-                orbs.push({ id: `${fr},${fc}->${tr},${tc}-${i}`, fromRow: fr, fromCol: fc, toRow: tr, toCol: tc, color });
-              }
-            }
-
-            const delay = t;
-            setTimeout(() => {
-              setExplodingCells(new Set(step.explodingCells.map(([r, c]) => `${r},${c}`)));
-              setFlyingOrbs(orbs);
-            }, delay);
-
-            // Cells whose prior owner was the enemy — these are captures, not reinforcements
-            const gridBeforeStep = i === 0 ? initialGrid : steps[i - 1].gridAfter;
-            const captured: [number, number][] = step.receivingCells.filter(([r, c]) => {
-              const prevOwner = gridBeforeStep[r][c].owner;
-              return prevOwner !== null && prevOwner !== myColor;
-            });
-            const reinforced: [number, number][] = step.receivingCells.filter(([r, c]) => {
-              const prevOwner = gridBeforeStep[r][c].owner;
-              return prevOwner === null || prevOwner === myColor;
-            });
-
-            setTimeout(() => {
-              setFlyingOrbs([]);
-              setExplodingCells(new Set());
-              setGame(prev => prev ? { ...prev, grid: step.gridAfter } : prev);
-              setReceivingCells(new Set(reinforced.map(([r, c]) => `${r},${c}`)));
-              setCapturedCells(new Set(captured.map(([r, c]) => `${r},${c}`)));
-            }, delay + FLY);
-
-            setTimeout(() => {
-              setReceivingCells(new Set());
-              setCapturedCells(new Set());
-            }, delay + FLY + RECV);
-
-            t += FLY + RECV + GAP;
-          }
-
-          // Push final state to DB after all animations complete
-          setTimeout(async () => {
-            const finalGrid = steps.length > 0 ? steps[steps.length - 1].gridAfter : initialGrid;
-            const winner = checkWinner(finalGrid);
-            await supabase.from('games').update({
-              grid: finalGrid,
-              current_turn: winner ? current_turn : nextTurn(myColor!),
-              winner: winner ?? null,
-              status: winner ? 'finished' : 'playing',
-              move_count: (game.move_count ?? 0) + 1,
-              last_move_row: row,
-              last_move_col: col,
-            }).eq('id', roomId);
-            animatingRef.current = false;
-            setSubmitting(false);
-          }, t);
-          return; // skip the finally setSubmitting(false)
+          // Mover's local animation — same helper the opponent uses when the realtime update arrives
+          const finalGrid = await animateMove(grid, row, col, myColor!);
+          const winner = checkWinner(finalGrid);
+          const newMoveCount = (game.move_count ?? 0) + 1;
+          const newCurrentTurn = winner ? current_turn : nextTurn(myColor!);
+          const newStatus: GameRow['status'] = winner ? 'finished' : 'playing';
+          const expectedState: GameRow = {
+            ...game,
+            grid: finalGrid,
+            current_turn: newCurrentTurn,
+            winner: winner ?? null,
+            status: newStatus,
+            move_count: newMoveCount,
+            last_move_row: row,
+            last_move_col: col,
+          };
+          lastAnimatedMoveKeyRef.current = moveKey(expectedState);
+          await supabase.from('games').update({
+            grid: finalGrid,
+            current_turn: newCurrentTurn,
+            winner: winner ?? null,
+            status: newStatus,
+            move_count: newMoveCount,
+            last_move_row: row,
+            last_move_col: col,
+          }).eq('id', roomId);
         }
       } finally {
         setSubmitting(false);
@@ -274,16 +355,26 @@ export default function GameClient({ roomId }: { roomId: string }) {
     if (!game || !myColor || rematchBusy) return;
     if (game.rematch_room_id) return;
     setRematchBusy(true);
+    setRematchError(null);
     try {
       const opponentRequested =
         game.rematch_requested_by && game.rematch_requested_by !== myColor;
 
       if (!opponentRequested) {
         // First player to click — flag request and wait for opponent
-        await supabase
+        const { data, error } = await supabase
           .from('games')
           .update({ rematch_requested_by: myColor })
-          .eq('id', roomId);
+          .eq('id', roomId)
+          .select()
+          .single();
+        if (error) {
+          console.error('[rematch] request failed', error);
+          setRematchError(error.message || 'Could not send rematch request');
+          setRematchBusy(false);
+          return;
+        }
+        if (data) setGame(data as GameRow); // optimistic — realtime will confirm
         setRematchBusy(false);
         return;
       }
@@ -302,24 +393,44 @@ export default function GameClient({ roomId }: { roomId: string }) {
         move_count: 0,
       });
       if (insertError) {
+        console.error('[rematch] insert failed', insertError);
+        setRematchError(insertError.message || 'Could not create new room');
         setRematchBusy(false);
         return;
       }
-      await supabase
+      const { error: linkError } = await supabase
         .from('games')
         .update({ rematch_room_id: newRoomId })
         .eq('id', roomId);
-    } finally {
-      // rematchBusy resets when we navigate; leaving it true prevents double-clicks
+      if (linkError) {
+        console.error('[rematch] link failed', linkError);
+        setRematchError(linkError.message || 'Could not link rematch room');
+        setRematchBusy(false);
+        return;
+      }
+      // leave rematchBusy true — we're about to navigate
+    } catch (e) {
+      console.error('[rematch] unexpected', e);
+      setRematchError('Unexpected error — check console');
+      setRematchBusy(false);
     }
   };
 
   const cancelRematch = async () => {
     if (!game) return;
-    await supabase
+    setRematchError(null);
+    const { data, error } = await supabase
       .from('games')
       .update({ rematch_requested_by: null })
-      .eq('id', roomId);
+      .eq('id', roomId)
+      .select()
+      .single();
+    if (error) {
+      console.error('[rematch] cancel failed', error);
+      setRematchError(error.message || 'Could not cancel rematch');
+      return;
+    }
+    if (data) setGame(data as GameRow);
   };
 
   const copyLink = () => {
@@ -1004,6 +1115,25 @@ export default function GameClient({ roomId }: { roomId: string }) {
                     >
                       WAITING FOR OPPONENT... (CANCEL)
                     </button>
+                  )}
+
+                  {rematchError && (
+                    <div
+                      className="ff-space"
+                      style={{
+                        color: '#FF2D55',
+                        fontSize: '9px',
+                        letterSpacing: '0.14em',
+                        padding: '8px 10px',
+                        background: 'rgba(255,45,85,0.06)',
+                        border: '1px solid rgba(255,45,85,0.35)',
+                        borderRadius: '3px',
+                        textTransform: 'uppercase',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {rematchError}
+                    </div>
                   )}
 
                   <button
