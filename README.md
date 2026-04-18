@@ -3,10 +3,8 @@
 A real-time, two-player grid conquest game with a neo-arcade aesthetic. Pick a starting square, chain-react your circles across a 5×5 board, and talk smack in live chat until one colour owns everything.
 
 <p align="center">
-  <img src="docs/home.png" alt="Home screen" width="420" />
+  <img src="https://github.com/user-attachments/assets/db84bced-2f58-498c-b2d5-41ac93ff66f7" alt="Home screen" width="420" />
 </p>
-
-> Drop your own screenshots into a `docs/` folder at the project root with the filenames below (`home.png`, `game.png`, `explosion.png`, `chat.png`, `victory.png`) and they'll render automatically.
 
 ---
 
@@ -14,15 +12,15 @@ A real-time, two-player grid conquest game with a neo-arcade aesthetic. Pick a s
 
 | Lobby | In-game HUD |
 |:---:|:---:|
-| <img src="docs/home.png" width="320" /> | <img src="docs/game.png" width="320" /> |
+| <img src="https://github.com/user-attachments/assets/db84bced-2f58-498c-b2d5-41ac93ff66f7" width="320" /> | <img src="https://github.com/user-attachments/assets/d9b54c07-9505-47bd-98e4-04e54238e5d9" width="320" /> |
 
 | Chain reaction | Live chat |
 |:---:|:---:|
-| <img src="docs/explosion.png" width="320" /> | <img src="docs/chat.png" width="320" /> |
+| <img src="https://github.com/user-attachments/assets/40d42b4c-7af8-47b5-872d-765338c69afa" width="320" /> | <img src="https://github.com/user-attachments/assets/79b78c92-7038-4a92-bdfa-acd5bd8980ea" width="320" /> |
 
 | Victory |
 |:---:|
-| <img src="docs/victory.png" width="320" /> |
+| <img src="https://github.com/user-attachments/assets/eae6fcc1-d598-479a-a4b1-c5fcf89d8073" width="320" /> |
 
 ---
 
