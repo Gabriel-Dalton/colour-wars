@@ -179,13 +179,13 @@ export default function GameClient({ roomId }: { roomId: string }) {
           const newGrid = placeStartingCircle(grid, row, col, 'blue');
           await supabase
             .from('games')
-            .update({ grid: newGrid, status: 'placement_red', current_turn: 'red' })
+            .update({ grid: newGrid, status: 'placement_red', current_turn: 'red', last_move_row: row, last_move_col: col })
             .eq('id', roomId);
         } else if (status === 'placement_red') {
           const newGrid = placeStartingCircle(grid, row, col, 'red');
           await supabase
             .from('games')
-            .update({ grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0 })
+            .update({ grid: newGrid, status: 'playing', current_turn: 'blue', move_count: 0, last_move_row: row, last_move_col: col })
             .eq('id', roomId);
         } else {
           // Animated explosion sequence
@@ -255,6 +255,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
               winner: winner ?? null,
               status: winner ? 'finished' : 'playing',
               move_count: (game.move_count ?? 0) + 1,
+              last_move_row: row,
+              last_move_col: col,
             }).eq('id', roomId);
             animatingRef.current = false;
             setSubmitting(false);
@@ -681,6 +683,8 @@ export default function GameClient({ roomId }: { roomId: string }) {
         explodingCells={explodingCells}
         receivingCells={receivingCells}
         capturedCells={capturedCells}
+        lastMoveRow={game.last_move_row}
+        lastMoveCol={game.last_move_col}
       />
 
       {/* ── Share panel (waiting) ───────────────────────────── */}

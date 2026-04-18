@@ -26,4 +26,6 @@ export interface GameRow {
   created_at: string;
   rematch_requested_by: Player | null;
   rematch_room_id: string | null;
+  last_move_row: number | null;
+  last_move_col: number | null;
 }

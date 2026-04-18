@@ -54,9 +54,10 @@ interface Props {
   isExploding?: boolean;
   isReceiving?: boolean;
   isCapturing?: boolean;
+  isLastMove?: boolean;
 }
 
-export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding, isReceiving, isCapturing }: Props) {
+export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding, isReceiving, isCapturing, isLastMove }: Props) {
   const [hovered, setHovered] = useState(false);
   const palette = cell.owner ? PALETTE[cell.owner] : null;
   const cm = cell.owner === null ? 4 : (cell.value >= 3 ? 3 : 4); // approximate danger threshold
@@ -94,6 +95,7 @@ export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding
         userSelect: 'none',
         transition: 'background 0.1s ease',
         outline: isHoverActive && !cell.owner ? '1px solid rgba(170,170,255,0.12)' : 'none',
+        position: 'relative',
       }}
       onClick={clickable ? onClick : undefined}
       onMouseEnter={() => { if (clickable) setHovered(true); }}
@@ -128,6 +130,19 @@ export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding
         >
           <Dots value={cell.value} />
         </div>
+      )}
+
+      {isLastMove && (
+        <div
+          className="anim-last-move"
+          style={{
+            position: 'absolute',
+            inset: 2,
+            borderRadius: '6px',
+            border: `2px solid ${cell.owner === 'blue' ? 'rgba(0,207,255,0.85)' : cell.owner === 'red' ? 'rgba(255,45,85,0.85)' : 'rgba(255,255,255,0.7)'}`,
+            pointerEvents: 'none',
+          }}
+        />
       )}
 
       {!cell.owner && clickable && (
