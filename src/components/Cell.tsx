@@ -53,9 +53,10 @@ interface Props {
   onClick: () => void;
   isExploding?: boolean;
   isReceiving?: boolean;
+  isCapturing?: boolean;
 }
 
-export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding, isReceiving }: Props) {
+export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding, isReceiving, isCapturing }: Props) {
   const [hovered, setHovered] = useState(false);
   const palette = cell.owner ? PALETTE[cell.owner] : null;
   const cm = cell.owner === null ? 4 : (cell.value >= 3 ? 3 : 4); // approximate danger threshold
@@ -100,7 +101,12 @@ export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding
     >
       {cell.owner && palette && (
         <div
-          className={isExploding ? 'anim-burst' : isReceiving ? 'anim-receive' : ''}
+          className={
+            isExploding ? 'anim-burst'
+            : isCapturing ? 'anim-capture'
+            : isReceiving ? 'anim-receive'
+            : ''
+          }
           style={{
             width: '44px',
             height: '44px',
@@ -110,8 +116,8 @@ export default function Cell({ cell, clickable, isMyCircle, onClick, isExploding
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: circleGlow,
-            transition: isExploding || isReceiving ? 'none' : 'transform 0.1s ease, box-shadow 0.15s ease',
-            transform: (!isExploding && !isReceiving)
+            transition: isExploding || isReceiving || isCapturing ? 'none' : 'transform 0.1s ease, box-shadow 0.15s ease',
+            transform: (!isExploding && !isReceiving && !isCapturing)
               ? isAboutToExplode
                 ? 'scale(1.06)'
                 : isMyCircle && isHoverActive

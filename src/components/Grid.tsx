@@ -62,6 +62,7 @@ interface Props {
   flyingOrbs?: FlyingOrbData[];
   explodingCells?: Set<string>;
   receivingCells?: Set<string>;
+  capturedCells?: Set<string>;
 }
 
 export default function Grid({
@@ -75,6 +76,7 @@ export default function Grid({
   flyingOrbs = [],
   explodingCells = new Set(),
   receivingCells = new Set(),
+  capturedCells = new Set(),
 }: Props) {
   const isActive =
     gameStatus === 'playing' ||
@@ -127,6 +129,7 @@ export default function Grid({
                 onClick={() => onCellClick(r, c)}
                 isExploding={explodingCells.has(key)}
                 isReceiving={receivingCells.has(key)}
+                isCapturing={capturedCells.has(key)}
               />
             );
           })

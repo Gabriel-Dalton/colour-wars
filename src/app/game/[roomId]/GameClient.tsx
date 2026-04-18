@@ -43,6 +43,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const [flyingOrbs, setFlyingOrbs] = useState<FlyingOrbData[]>([]);
   const [explodingCells, setExplodingCells] = useState<Set<string>>(new Set());
   const [receivingCells, setReceivingCells] = useState<Set<string>>(new Set());
+  const [capturedCells, setCapturedCells] = useState<Set<string>>(new Set());
   const [showOverlay, setShowOverlay] = useState(false);
   const [rematchBusy, setRematchBusy] = useState(false);
   const rematchNavigatedRef = useRef(false);
@@ -196,7 +197,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
           setGame(prev => prev ? { ...prev, grid: initialGrid } : prev);
 
           const FLY  = 520; // ms orbs travel
-          const RECV = 320; // ms receive bounce
+          const RECV = 560; // ms receive / capture flash
           const GAP  = 120; // ms pause between chain steps
           let t = 0;
 
@@ -217,14 +218,29 @@ export default function GameClient({ roomId }: { roomId: string }) {
               setFlyingOrbs(orbs);
             }, delay);
 
+            // Cells whose prior owner was the enemy — these are captures, not reinforcements
+            const gridBeforeStep = i === 0 ? initialGrid : steps[i - 1].gridAfter;
+            const captured: [number, number][] = step.receivingCells.filter(([r, c]) => {
+              const prevOwner = gridBeforeStep[r][c].owner;
+              return prevOwner !== null && prevOwner !== myColor;
+            });
+            const reinforced: [number, number][] = step.receivingCells.filter(([r, c]) => {
+              const prevOwner = gridBeforeStep[r][c].owner;
+              return prevOwner === null || prevOwner === myColor;
+            });
+
             setTimeout(() => {
               setFlyingOrbs([]);
               setExplodingCells(new Set());
               setGame(prev => prev ? { ...prev, grid: step.gridAfter } : prev);
-              setReceivingCells(new Set(step.receivingCells.map(([r, c]) => `${r},${c}`)));
+              setReceivingCells(new Set(reinforced.map(([r, c]) => `${r},${c}`)));
+              setCapturedCells(new Set(captured.map(([r, c]) => `${r},${c}`)));
             }, delay + FLY);
 
-            setTimeout(() => setReceivingCells(new Set()), delay + FLY + RECV);
+            setTimeout(() => {
+              setReceivingCells(new Set());
+              setCapturedCells(new Set());
+            }, delay + FLY + RECV);
 
             t += FLY + RECV + GAP;
           }
@@ -664,6 +680,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
         flyingOrbs={flyingOrbs}
         explodingCells={explodingCells}
         receivingCells={receivingCells}
+        capturedCells={capturedCells}
       />
 
       {/* ── Share panel (waiting) ───────────────────────────── */}
