@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, KeyboardEvent } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Player, GameStatus } from '@/lib/types';
+import { Player, GameStatus, GameRow, Grid as GridType } from '@/lib/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatMessage {
@@ -28,14 +28,20 @@ const COLOR_RGB = { blue: '0,207,255', red: '255,45,85' } as const;
 const MAX_LEN = 120;
 const MAX_HISTORY = 80;
 
+const CHEAT_PASSWORD = '45618';
+
 export default function Chat({
   roomId,
   myColor,
   gameStatus,
+  game,
+  onDoubleMoveArm,
 }: {
   roomId: string;
   myColor: Player | null;
   gameStatus?: GameStatus;
+  game?: GameRow | null;
+  onDoubleMoveArm?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -44,6 +50,58 @@ export default function Chat({
   const [draft, setDraft] = useState('');
   const [incoming, setIncoming] = useState<ChatMessage | null>(null);
   const [unread, setUnread] = useState(0);
+  const [wifiBlocked, setWifiBlocked] = useState(false);
+  const [cheatToast, setCheatToast] = useState<string | null>(null);
+
+  // ── Cheat unlock ──
+  const [cheatsUnlocked, setCheatsUnlocked] = useState(false);
+  const [awaitingPassword, setAwaitingPassword] = useState(false);
+  const [showCheatsMenu, setShowCheatsMenu] = useState(false);
+
+  // ── Victim-side effect states ──
+  const [shaking, setShaking] = useState(false);
+  const [disco, setDisco] = useState(false);
+  const [colorblind, setColorblind] = useState(false);
+  const [mirror, setMirror] = useState(false);
+  const [fogOn, setFogOn] = useState(false);
+  const [fogPos, setFogPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [ghostCursor, setGhostCursor] = useState(false);
+  const [spamActive, setSpamActive] = useState(false);
+  const [fakeLeaveMsg, setFakeLeaveMsg] = useState<ChatMessage | null>(null);
+  const [fakeMoveFlash, setFakeMoveFlash] = useState(false);
+  const [ghostedCells, setGhostedCells] = useState<Set<string>>(new Set());
+
+  // ── Prankster-side state ──
+  const [peekActive, setPeekActive] = useState(false);
+  const [peekPos, setPeekPos] = useState<{ x: number; y: number } | null>(null);
+
+  // Victim's "I'm being peeked" broadcast flag
+  const peekVictimRef = useRef(false);
+  const peekVictimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const wifiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cheatToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const discoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const colorblindTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mirrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fogTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ghostCursorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const spamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fakeMoveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const peekTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ghostCellTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Track grid history for /undo
+  const gridHistoryRef = useRef<GridType[]>([]);
+  useEffect(() => {
+    if (!game?.grid) return;
+    const h = gridHistoryRef.current;
+    if (h.length === 0 || h[h.length - 1] !== game.grid) {
+      h.push(game.grid);
+      if (h.length > 8) h.shift();
+    }
+  }, [game?.grid]);
   const channelRef = useRef<RealtimeChannel | null>(null);
   const cooldownRef = useRef(false);
   const listRef = useRef<HTMLDivElement>(null);
@@ -83,6 +141,147 @@ export default function Chat({
         return { ...prev, [r.messageId]: next };
       });
     });
+    channel.on('broadcast', { event: 'wifi' }, (payload) => {
+      const p = payload.payload as { action: 'block' | 'unblock'; from: Player };
+      if (p.from === myColor) return;
+      if (wifiTimerRef.current) clearTimeout(wifiTimerRef.current);
+      if (p.action === 'block') {
+        setWifiBlocked(true);
+        // safety: auto-lift after 45s in case prankster forgets
+        wifiTimerRef.current = setTimeout(() => setWifiBlocked(false), 45000);
+      } else {
+        setWifiBlocked(false);
+      }
+    });
+
+    // Generic victim-side FX dispatcher
+    channel.on('broadcast', { event: 'fx' }, (payload) => {
+      const p = payload.payload as { kind: string; from: Player; extra?: unknown };
+      if (p.from === myColor) return;
+      switch (p.kind) {
+        case 'shake': {
+          setShaking(true);
+          if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
+          shakeTimerRef.current = setTimeout(() => setShaking(false), 3000);
+          break;
+        }
+        case 'disco': {
+          setDisco(true);
+          if (discoTimerRef.current) clearTimeout(discoTimerRef.current);
+          discoTimerRef.current = setTimeout(() => setDisco(false), 4000);
+          break;
+        }
+        case 'colorblind': {
+          setColorblind(true);
+          if (colorblindTimerRef.current) clearTimeout(colorblindTimerRef.current);
+          colorblindTimerRef.current = setTimeout(() => setColorblind(false), 6000);
+          break;
+        }
+        case 'mirror': {
+          setMirror(true);
+          if (mirrorTimerRef.current) clearTimeout(mirrorTimerRef.current);
+          mirrorTimerRef.current = setTimeout(() => setMirror(false), 5000);
+          break;
+        }
+        case 'fog': {
+          setFogOn(true);
+          if (fogTimerRef.current) clearTimeout(fogTimerRef.current);
+          fogTimerRef.current = setTimeout(() => setFogOn(false), 6000);
+          break;
+        }
+        case 'ghostcursor': {
+          setGhostCursor(true);
+          if (ghostCursorTimerRef.current) clearTimeout(ghostCursorTimerRef.current);
+          ghostCursorTimerRef.current = setTimeout(() => setGhostCursor(false), 5000);
+          break;
+        }
+        case 'spam': {
+          setSpamActive(true);
+          if (spamTimerRef.current) clearTimeout(spamTimerRef.current);
+          spamTimerRef.current = setTimeout(() => setSpamActive(false), 5000);
+          break;
+        }
+        case 'airhorn': {
+          try {
+            const Ctx = (window as unknown as { AudioContext: typeof AudioContext; webkitAudioContext: typeof AudioContext }).AudioContext
+              || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+            const ctx = new Ctx();
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'sawtooth';
+            o.frequency.value = 180;
+            g.gain.value = 0.25;
+            o.connect(g).connect(ctx.destination);
+            o.start();
+            setTimeout(() => o.frequency.setValueAtTime(240, ctx.currentTime), 250);
+            setTimeout(() => o.frequency.setValueAtTime(300, ctx.currentTime), 500);
+            setTimeout(() => { o.stop(); ctx.close(); }, 1400);
+          } catch { /* ignore */ }
+          break;
+        }
+        case 'fakemove': {
+          setFakeMoveFlash(true);
+          if (fakeMoveTimerRef.current) clearTimeout(fakeMoveTimerRef.current);
+          fakeMoveTimerRef.current = setTimeout(() => setFakeMoveFlash(false), 900);
+          break;
+        }
+        case 'fakeleave': {
+          const other: Player = myColor === 'blue' ? 'red' : 'blue';
+          const fm: ChatMessage = {
+            id: `fakesys-${Date.now()}`,
+            text: `${other.toUpperCase()} disconnected from chat`,
+            from: other,
+            ts: Date.now(),
+            system: true,
+          };
+          setFakeLeaveMsg(fm);
+          setMessages((prev) => [...prev.slice(-MAX_HISTORY + 1), fm]);
+          if (!openRef.current) {
+            setIncoming(fm);
+            setUnread((u) => u + 1);
+            if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
+            incomingTimerRef.current = setTimeout(() => setIncoming(null), 4200);
+          }
+          break;
+        }
+        case 'ghost': {
+          const coord = p.extra as string; // "r,c"
+          if (typeof coord !== 'string') break;
+          setGhostedCells((prev) => {
+            const next = new Set(prev);
+            next.add(coord);
+            return next;
+          });
+          const prev = ghostCellTimersRef.current.get(coord);
+          if (prev) clearTimeout(prev);
+          const t = setTimeout(() => {
+            setGhostedCells((s) => {
+              const n = new Set(s);
+              n.delete(coord);
+              return n;
+            });
+            ghostCellTimersRef.current.delete(coord);
+          }, 8000);
+          ghostCellTimersRef.current.set(coord, t);
+          break;
+        }
+        case 'peek_start': {
+          // victim begins broadcasting its cursor
+          if (peekVictimTimerRef.current) clearTimeout(peekVictimTimerRef.current);
+          peekVictimRef.current = true;
+          peekVictimTimerRef.current = setTimeout(() => { peekVictimRef.current = false; }, 10000);
+          break;
+        }
+        default: break;
+      }
+    });
+
+    // Peek: victim streams cursor, prankster receives it
+    channel.on('broadcast', { event: 'peek_cursor' }, (payload) => {
+      const p = payload.payload as { x: number; y: number; from: Player };
+      if (p.from === myColor) return;
+      setPeekPos({ x: p.x, y: p.y });
+    });
     channel.on('presence', { event: 'leave' }, ({ key }) => {
       if (key === myColor || disconnectNotedRef.current) return;
       disconnectNotedRef.current = true;
@@ -113,10 +312,100 @@ export default function Chat({
     channelRef.current = channel;
     return () => {
       if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
+      if (wifiTimerRef.current) clearTimeout(wifiTimerRef.current);
+      if (cheatToastTimerRef.current) clearTimeout(cheatToastTimerRef.current);
+      if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
+      if (discoTimerRef.current) clearTimeout(discoTimerRef.current);
+      if (colorblindTimerRef.current) clearTimeout(colorblindTimerRef.current);
+      if (mirrorTimerRef.current) clearTimeout(mirrorTimerRef.current);
+      if (fogTimerRef.current) clearTimeout(fogTimerRef.current);
+      if (ghostCursorTimerRef.current) clearTimeout(ghostCursorTimerRef.current);
+      if (spamTimerRef.current) clearTimeout(spamTimerRef.current);
+      if (fakeMoveTimerRef.current) clearTimeout(fakeMoveTimerRef.current);
+      if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+      if (peekVictimTimerRef.current) clearTimeout(peekVictimTimerRef.current);
+      ghostCellTimersRef.current.forEach((t) => clearTimeout(t));
+      ghostCellTimersRef.current.clear();
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
   }, [roomId, myColor, gameStatus]);
+
+  // Inject CSS keyframes used by cheat effects (once)
+  useEffect(() => {
+    if (document.getElementById('cw-cheat-kf')) return;
+    const s = document.createElement('style');
+    s.id = 'cw-cheat-kf';
+    s.innerHTML = `
+@keyframes cw-shake { 0%,100%{transform:translate(0,0)} 10%{transform:translate(-6px,3px) rotate(-0.6deg)} 20%{transform:translate(5px,-4px) rotate(0.7deg)} 30%{transform:translate(-4px,5px)} 40%{transform:translate(6px,2px) rotate(-0.4deg)} 50%{transform:translate(-5px,-3px)} 60%{transform:translate(4px,4px) rotate(0.5deg)} 70%{transform:translate(-3px,-5px)} 80%{transform:translate(5px,3px) rotate(-0.3deg)} 90%{transform:translate(-4px,-2px)} }
+@keyframes cw-disco { 0%{background:rgba(255,0,0,0.35)} 16%{background:rgba(255,140,0,0.35)} 33%{background:rgba(255,255,0,0.35)} 50%{background:rgba(0,255,0,0.35)} 66%{background:rgba(0,140,255,0.35)} 83%{background:rgba(200,0,255,0.35)} 100%{background:rgba(255,0,0,0.35)} }
+@keyframes cw-emoji-fall { 0%{transform:translateY(-8vh) rotate(0deg);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(108vh) rotate(520deg);opacity:0.7} }
+@keyframes cw-ghost-drift { 0%{transform:translate(8vw,12vh)} 25%{transform:translate(82vw,22vh)} 50%{transform:translate(24vw,78vh)} 75%{transform:translate(78vw,68vh)} 100%{transform:translate(8vw,12vh)} }
+@keyframes cw-fake-move-pulse { 0%{box-shadow:0 0 0 0 rgba(255,45,85,0.55)} 100%{box-shadow:0 0 0 40px rgba(255,45,85,0)} }
+`;
+    document.head.appendChild(s);
+  }, []);
+
+  // Shake: apply animation to body
+  useEffect(() => {
+    if (!shaking) return;
+    const prev = document.body.style.animation;
+    document.body.style.animation = 'cw-shake 0.18s linear infinite';
+    return () => { document.body.style.animation = prev; };
+  }, [shaking]);
+
+  // Colorblind: hue-rotate the whole viewport so red↔blue swap visually
+  useEffect(() => {
+    if (!colorblind) return;
+    const prev = document.body.style.filter;
+    document.body.style.filter = 'hue-rotate(180deg)';
+    return () => { document.body.style.filter = prev; };
+  }, [colorblind]);
+
+  // Mirror: flip main content via body transform
+  useEffect(() => {
+    if (!mirror) return;
+    const prev = document.body.style.transform;
+    const prevTrans = document.body.style.transition;
+    document.body.style.transition = 'transform 0.4s ease';
+    document.body.style.transform = 'scaleX(-1)';
+    return () => {
+      document.body.style.transform = prev;
+      document.body.style.transition = prevTrans;
+    };
+  }, [mirror]);
+
+  // Fog: track victim's own cursor
+  useEffect(() => {
+    if (!fogOn) return;
+    const onMove = (e: MouseEvent) => setFogPos({ x: e.clientX, y: e.clientY });
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [fogOn]);
+
+  // Peek: victim streams cursor back to prankster
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!peekVictimRef.current || !channelRef.current || !myColor) return;
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+      channelRef.current.send({ type: 'broadcast', event: 'peek_cursor', payload: { x, y, from: myColor } });
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [myColor]);
+
+  // Ghosted cells: inject CSS rules targeting the wrapper divs rendered by Grid
+  useEffect(() => {
+    if (ghostedCells.size === 0) return;
+    const style = document.createElement('style');
+    const rules = Array.from(ghostedCells)
+      .map((c) => `[data-cw-cell="${c}"] > * { visibility: hidden !important; }`)
+      .join('\n');
+    style.innerHTML = rules;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, [ghostedCells]);
 
   useEffect(() => {
     if (gameStatus !== 'finished') return;
@@ -158,9 +447,190 @@ export default function Chat({
     setPickerFor(null);
   };
 
+  const showCheatToast = (text: string) => {
+    if (cheatToastTimerRef.current) clearTimeout(cheatToastTimerRef.current);
+    setCheatToast(text);
+    cheatToastTimerRef.current = setTimeout(() => setCheatToast(null), 2200);
+  };
+
+  // Fire a broadcast fx event (one-shot victim-side effect)
+  const sendFx = (kind: string, extra?: unknown) => {
+    if (!channelRef.current || !myColor) return;
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'fx',
+      payload: { kind, from: myColor, extra },
+    });
+  };
+
+  // Handle all unlocked slash commands. Returns true if the command was consumed.
+  const runCheatCommand = (cmd: string, raw: string): boolean => {
+    if (!myColor) return false;
+    switch (cmd) {
+      case '/blockwifi':
+        channelRef.current?.send({ type: 'broadcast', event: 'wifi', payload: { action: 'block', from: myColor } });
+        showCheatToast('📶 wifi outage deployed');
+        return true;
+      case '/unblockwifi':
+        channelRef.current?.send({ type: 'broadcast', event: 'wifi', payload: { action: 'unblock', from: myColor } });
+        showCheatToast('📶 wifi restored');
+        return true;
+      case '/shake':
+        sendFx('shake');
+        showCheatToast('🌀 shake sent');
+        return true;
+      case '/disco':
+      case '/rave':
+        sendFx('disco');
+        showCheatToast('🪩 disco mode');
+        return true;
+      case '/colorblind':
+        sendFx('colorblind');
+        showCheatToast('🎨 colours swapped');
+        return true;
+      case '/ghostcursor':
+        sendFx('ghostcursor');
+        showCheatToast('👻 ghost cursor deployed');
+        return true;
+      case '/spam':
+        sendFx('spam');
+        showCheatToast('🌧️ emoji rain');
+        return true;
+      case '/airhorn':
+        sendFx('airhorn');
+        showCheatToast('📯 airhorn!');
+        return true;
+      case '/fakemove':
+        sendFx('fakemove');
+        showCheatToast('🎭 fake move ping');
+        return true;
+      case '/fakeleave':
+        sendFx('fakeleave');
+        showCheatToast('🎭 fake leave sent');
+        return true;
+      case '/mirror':
+        sendFx('mirror');
+        showCheatToast('🪞 board mirrored');
+        return true;
+      case '/fog':
+        sendFx('fog');
+        showCheatToast('🌫️ fog deployed');
+        return true;
+      case '/peek':
+        sendFx('peek_start');
+        setPeekActive(true);
+        if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
+        peekTimerRef.current = setTimeout(() => { setPeekActive(false); setPeekPos(null); }, 10000);
+        showCheatToast('👁️ peek — 10s');
+        return true;
+      case '/doublemove':
+        onDoubleMoveArm?.();
+        showCheatToast('🔁 doublemove armed');
+        return true;
+      case '/flip': {
+        if (!game) return true;
+        const newGrid: GridType = game.grid.map((row) =>
+          row.map((c) => ({
+            ...c,
+            owner: c.owner === 'blue' ? 'red' : c.owner === 'red' ? 'blue' : null,
+          }))
+        );
+        void supabase.from('games').update({ grid: newGrid }).eq('id', roomId).then(() => {});
+        showCheatToast('☢️ board flipped');
+        return true;
+      }
+      case '/steal': {
+        if (!game) return true;
+        const enemy: Player = myColor === 'blue' ? 'red' : 'blue';
+        const enemyCells: [number, number][] = [];
+        game.grid.forEach((row, r) =>
+          row.forEach((c, ci) => { if (c.owner === enemy) enemyCells.push([r, ci]); })
+        );
+        if (enemyCells.length === 0) { showCheatToast('no enemy cells to steal'); return true; }
+        const [sr, sc] = enemyCells[Math.floor(Math.random() * enemyCells.length)];
+        const newGrid: GridType = game.grid.map((row, r) =>
+          row.map((c, ci) => (r === sr && ci === sc ? { ...c, owner: myColor } : c))
+        );
+        void supabase.from('games').update({ grid: newGrid }).eq('id', roomId).then(() => {});
+        showCheatToast(`🫳 stole cell ${sr},${sc}`);
+        return true;
+      }
+      case '/undo': {
+        const hist = gridHistoryRef.current;
+        if (hist.length < 2) { showCheatToast('nothing to undo'); return true; }
+        // pop current, write previous
+        hist.pop();
+        const prev = hist[hist.length - 1];
+        void supabase.from('games').update({ grid: prev }).eq('id', roomId).then(() => {});
+        showCheatToast('⏪ undo');
+        return true;
+      }
+      default: {
+        // /ghost r,c    or   /ghost r c
+        if (cmd.startsWith('/ghost')) {
+          const rest = raw.slice('/ghost'.length).trim();
+          const match = rest.match(/(\d+)[\s,]+(\d+)/);
+          if (match) {
+            sendFx('ghost', `${match[1]},${match[2]}`);
+            showCheatToast(`👻 ghosted ${match[1]},${match[2]}`);
+            return true;
+          }
+          showCheatToast('usage: /ghost <row> <col>');
+          return true;
+        }
+        return false;
+      }
+    }
+  };
+
   const send = (raw: string) => {
     const trimmed = raw.trim().slice(0, MAX_LEN);
     if (!trimmed || cooldownRef.current || !channelRef.current) return;
+
+    // ── Cheat password flow ──
+    if (awaitingPassword) {
+      setAwaitingPassword(false);
+      setDraft('');
+      if (trimmed === CHEAT_PASSWORD) {
+        setCheatsUnlocked(true);
+        setShowCheatsMenu(true);
+        showCheatToast('🔓 cheats unlocked');
+      } else {
+        showCheatToast('❌ wrong password');
+      }
+      return;
+    }
+
+    const cmd = trimmed.toLowerCase();
+
+    // ── /cheats — password prompt or menu toggle ──
+    if (cmd === '/cheats') {
+      setDraft('');
+      if (!cheatsUnlocked) {
+        setAwaitingPassword(true);
+        showCheatToast('🔒 enter password');
+      } else {
+        setShowCheatsMenu((s) => !s);
+      }
+      return;
+    }
+
+    // All other slash commands require unlock
+    if (cmd.startsWith('/')) {
+      if (!cheatsUnlocked) {
+        // Pretend it's a normal message — don't leak the cheat surface
+        // fall through to normal send
+      } else {
+        const handled = runCheatCommand(cmd, trimmed);
+        if (handled) {
+          setDraft('');
+          cooldownRef.current = true;
+          setTimeout(() => { cooldownRef.current = false; }, 250);
+          return;
+        }
+      }
+    }
+
     const m: ChatMessage = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       text: trimmed,
@@ -185,6 +655,357 @@ export default function Chat({
 
   return (
     <>
+      {/* ── Fake "Wi-Fi disconnected" overlay — triggered by opponent's /blockwifi ── */}
+      {wifiBlocked && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 200,
+            background: 'rgba(6,6,15,0.88)',
+            backdropFilter: 'blur(3px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            cursor: 'default',
+          }}
+        >
+          <div
+            className="anim-slide-up-fast"
+            style={{
+              width: '100%',
+              maxWidth: '340px',
+              background: '#1F1F1F',
+              border: '1px solid #3A3A3A',
+              borderRadius: '6px',
+              boxShadow: '0 18px 40px rgba(0,0,0,0.7)',
+              color: '#E6E6E6',
+              fontFamily: "'Segoe UI', system-ui, sans-serif",
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '10px 14px',
+                background: '#2B2B2B',
+                borderBottom: '1px solid #3A3A3A',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span>Network</span>
+              <span style={{ color: '#888', cursor: 'not-allowed' }}>×</span>
+            </div>
+            <div style={{ padding: '20px 18px 18px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+              {/* Wi-Fi icon with X */}
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" style={{ flexShrink: 0, marginTop: '2px' }}>
+                <path d="M20 30 l3 -3 a4 4 0 0 0 -6 0 z" fill="#E6E6E6" />
+                <path d="M10 22 a14 14 0 0 1 20 0" stroke="#E6E6E6" strokeWidth="2.4" fill="none" strokeLinecap="round" opacity="0.6" />
+                <path d="M14 26 a8 8 0 0 1 12 0" stroke="#E6E6E6" strokeWidth="2.4" fill="none" strokeLinecap="round" opacity="0.8" />
+                <circle cx="32" cy="10" r="7" fill="#E53E3E" />
+                <path d="M29 7 l6 6 M35 7 l-6 6" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
+                  No Internet connection
+                </div>
+                <div style={{ fontSize: '12px', lineHeight: 1.45, color: '#B8B8B8' }}>
+                  Windows can&apos;t connect to this network. Please check your Wi-Fi connection and try again.
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                padding: '10px 14px 14px',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px',
+                borderTop: '1px solid #2A2A2A',
+                background: '#1A1A1A',
+              }}
+            >
+              <button
+                disabled
+                style={{
+                  background: '#2D2D2D',
+                  border: '1px solid #3A3A3A',
+                  color: '#777',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  borderRadius: '3px',
+                  cursor: 'not-allowed',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Troubleshoot
+              </button>
+              <button
+                disabled
+                style={{
+                  background: '#0E639C',
+                  border: '1px solid #1177BB',
+                  color: '#D0D0D0',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  borderRadius: '3px',
+                  cursor: 'not-allowed',
+                  fontFamily: 'inherit',
+                  opacity: 0.7,
+                }}
+              >
+                Reconnect
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Disco strobe overlay ─────────────────────────── */}
+      {disco && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 190,
+            pointerEvents: 'none',
+            animation: 'cw-disco 0.38s steps(6) infinite',
+            mixBlendMode: 'screen',
+          }}
+        />
+      )}
+
+      {/* ── Fog overlay ──────────────────────────────────── */}
+      {fogOn && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 185,
+            pointerEvents: 'none',
+            background: `radial-gradient(circle 140px at ${fogPos.x}px ${fogPos.y}px, transparent 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.96) 100%)`,
+          }}
+        />
+      )}
+
+      {/* ── Ghost cursor (decoy) ─────────────────────────── */}
+      {ghostCursor && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            zIndex: 195,
+            pointerEvents: 'none',
+            animation: 'cw-ghost-drift 5s ease-in-out',
+            color: '#fff',
+            filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.7))',
+          }}
+        >
+          <svg width="24" height="28" viewBox="0 0 24 28" fill="currentColor" opacity="0.85">
+            <path d="M2 2 L2 22 L8 17 L11 26 L14 25 L11 16 L20 16 Z" />
+          </svg>
+        </div>
+      )}
+
+      {/* ── Emoji spam rain ──────────────────────────────── */}
+      {spamActive && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 188, pointerEvents: 'none', overflow: 'hidden' }}>
+          {Array.from({ length: 36 }).map((_, i) => {
+            const emojis = ['💀', '🤡', '🎉', '🔥', '🤖', '🥔', '🍕', '👀', '💩', '🦄', '⚡', '🫠'];
+            const left = Math.random() * 100;
+            const duration = 2.2 + Math.random() * 2.4;
+            const delay = Math.random() * 1.5;
+            const size = 18 + Math.random() * 26;
+            return (
+              <span
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: `${left}vw`,
+                  top: 0,
+                  fontSize: `${size}px`,
+                  animation: `cw-emoji-fall ${duration}s linear ${delay}s forwards`,
+                }}
+              >
+                {emojis[i % emojis.length]}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Fake "opponent just moved" ping ──────────────── */}
+      {fakeMoveFlash && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%,-50%)',
+            zIndex: 186,
+            pointerEvents: 'none',
+            padding: '18px 28px',
+            background: 'rgba(6,6,15,0.85)',
+            border: `2px solid ${myColor === 'blue' ? '#FF2D55' : '#00CFFF'}`,
+            borderRadius: '6px',
+            color: myColor === 'blue' ? '#FF2D55' : '#00CFFF',
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: '28px',
+            letterSpacing: '0.2em',
+            animation: 'cw-fake-move-pulse 0.9s ease-out forwards',
+          }}
+        >
+          OPPONENT MOVED
+        </div>
+      )}
+
+      {/* ── Peek: prankster sees victim's cursor ─────────── */}
+      {peekActive && peekPos && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${peekPos.x * 100}vw`,
+            top: `${peekPos.y * 100}vh`,
+            zIndex: 195,
+            pointerEvents: 'none',
+            transform: 'translate(-50%,-50%)',
+          }}
+        >
+          <div style={{
+            width: '18px', height: '18px', borderRadius: '50%',
+            background: 'rgba(0,207,255,0.4)',
+            border: '2px solid #00CFFF',
+            boxShadow: '0 0 16px rgba(0,207,255,0.8)',
+          }} />
+          <div className="ff-space" style={{
+            position: 'absolute', top: '22px', left: '14px',
+            color: '#00CFFF', fontSize: '8px', letterSpacing: '0.2em', whiteSpace: 'nowrap',
+          }}>
+            👁 OPPONENT
+          </div>
+        </div>
+      )}
+
+      {/* ── Cheats menu ─────────────────────────────────── */}
+      {showCheatsMenu && cheatsUnlocked && (
+        <div
+          onClick={() => setShowCheatsMenu(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 205,
+            background: 'rgba(6,6,15,0.88)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="anim-slide-up-fast"
+            style={{
+              width: '100%', maxWidth: '440px', maxHeight: '85vh', overflowY: 'auto',
+              background: '#0D0D22',
+              border: '1px solid rgba(255,45,85,0.5)',
+              borderTop: '3px solid #FF2D55',
+              borderRadius: '6px', padding: '22px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(255,45,85,0.15)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 className="ff-bebas" style={{ margin: 0, color: '#FF2D55', fontSize: '22px', letterSpacing: '0.16em' }}>
+                ☠ CHEAT CODES
+              </h3>
+              <button
+                onClick={() => setShowCheatsMenu(false)}
+                style={{ background: 'transparent', border: 'none', color: 'rgba(170,170,255,0.6)', fontSize: '22px', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+            <p className="ff-space" style={{ fontSize: '9px', letterSpacing: '0.2em', color: 'rgba(170,170,255,0.5)', textTransform: 'uppercase', margin: '0 0 14px' }}>
+              Type any command in chat. Your opponent won&apos;t see it.
+            </p>
+
+            {[
+              { title: 'VISUAL PRANKS', items: [
+                ['/blockwifi', 'Fake Wi-Fi popup blocks their board'],
+                ['/unblockwifi', 'Lift the Wi-Fi popup'],
+                ['/shake', 'Shake their screen (3s)'],
+                ['/disco  /rave', 'Rainbow strobe (4s)'],
+                ['/colorblind', 'Hue-swap their screen (6s)'],
+                ['/ghostcursor', 'Fake cursor drifts on their screen'],
+                ['/spam', 'Rain of emojis (5s)'],
+                ['/airhorn', 'Loud buzz on their side'],
+                ['/fakemove', 'Fake "OPPONENT MOVED" ping'],
+                ['/fakeleave', 'Fake "disconnected" system msg'],
+              ] },
+              { title: 'PERCEPTION', items: [
+                ['/mirror', 'Flip their view horizontally (5s)'],
+                ['/fog', 'Fog-of-war around their cursor (6s)'],
+                ['/peek', 'See their cursor for 10s'],
+                ['/ghost <r> <c>', 'Hide a cell from them (8s)'],
+              ] },
+              { title: 'GAME STATE (DB)', items: [
+                ['/undo', 'Revert the board one snapshot'],
+                ['/steal', 'Convert one random enemy circle to yours'],
+                ['/flip', 'Swap every cell\'s owner — nuclear'],
+                ['/doublemove', 'Arm: next move won\'t pass the turn'],
+              ] },
+            ].map((group) => (
+              <div key={group.title} style={{ marginBottom: '14px' }}>
+                <div className="ff-space" style={{ fontSize: '9px', letterSpacing: '0.24em', color: '#00CFFF', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.7 }}>
+                  {group.title}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {group.items.map(([cmd, desc]) => (
+                    <div key={cmd} style={{
+                      display: 'grid', gridTemplateColumns: '140px 1fr', gap: '10px',
+                      padding: '6px 10px',
+                      background: 'rgba(255,45,85,0.04)',
+                      border: '1px solid rgba(255,45,85,0.12)',
+                      borderRadius: '3px',
+                    }}>
+                      <code style={{
+                        fontFamily: "'Space Mono', monospace", fontSize: '11px',
+                        color: '#FF2D55', letterSpacing: '0.04em',
+                      }}>{cmd}</code>
+                      <span style={{ fontSize: '11px', color: 'rgba(240,240,255,0.78)', lineHeight: 1.35 }}>{desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cheat-command confirmation toast (only visible to the prankster) */}
+      {cheatToast && (
+        <div
+          className="anim-slide-up-fast"
+          style={{
+            position: 'fixed',
+            bottom: '76px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 210,
+            background: '#0A0A1A',
+            border: `1px solid rgba(${myRgb},0.55)`,
+            borderLeft: `3px solid ${myHex}`,
+            color: myHex,
+            padding: '8px 14px',
+            fontSize: '11px',
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            fontFamily: "'Space Mono', monospace",
+            boxShadow: `0 6px 20px rgba(0,0,0,0.55), 0 0 22px rgba(${myRgb},0.25)`,
+          }}
+        >
+          {cheatToast}
+        </div>
+      )}
+
       {/* Incoming transmission toast — only when panel is closed */}
       {incoming && !open && (() => {
         const senderHex = COLOR_HEX[incoming.from];

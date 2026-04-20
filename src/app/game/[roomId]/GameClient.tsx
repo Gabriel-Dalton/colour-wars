@@ -51,6 +51,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const [rematchBusy, setRematchBusy] = useState(false);
   const [rematchError, setRematchError] = useState<string | null>(null);
   const rematchNavigatedRef = useRef(false);
+  const doubleMoveArmedRef = useRef(false);
   const animatingRef = useRef(false);
   const gameRef = useRef<GameRow | null>(null);
   const myColorRef = useRef<Player | null>(null);
@@ -371,7 +372,13 @@ export default function GameClient({ roomId }: { roomId: string }) {
           const finalGrid = await animateMove(grid, row, col, myColor!);
           const winner = checkWinner(finalGrid);
           const newMoveCount = (game.move_count ?? 0) + 1;
-          const newCurrentTurn = winner ? current_turn : nextTurn(myColor!);
+          const consumeDoubleMove = doubleMoveArmedRef.current && !winner;
+          if (consumeDoubleMove) doubleMoveArmedRef.current = false;
+          const newCurrentTurn = winner
+            ? current_turn
+            : consumeDoubleMove
+              ? myColor!
+              : nextTurn(myColor!);
           const newStatus: GameRow['status'] = winner ? 'finished' : 'playing';
           const expectedState: GameRow = {
             ...game,
@@ -628,6 +635,9 @@ export default function GameClient({ roomId }: { roomId: string }) {
         }}
       />
 
+      <div className="cw-layout">
+      <div className="cw-col-left">
+
       {/* ── Wordmark header ─────────────────────────────────── */}
       <div
         style={{
@@ -657,6 +667,30 @@ export default function GameClient({ roomId }: { roomId: string }) {
           </span>
         </div>
       </div>
+
+      {/* ── Grid ────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <Grid
+          grid={game.grid}
+          onCellClick={handleCellClick}
+          myColor={myColor}
+          gameStatus={game.status}
+          currentTurn={game.current_turn}
+          isPlacingNow={isPlacingNow}
+          submitting={submitting}
+          flyingOrbs={flyingOrbs}
+          explodingCells={explodingCells}
+          receivingCells={receivingCells}
+          capturedCells={capturedCells}
+          lastImpactCells={lastImpactCells}
+          mode={game.mode ?? 'classic'}
+        />
+      </div>
+
+      </div>
+      {/* ── /cw-col-left ───────────────────────────────────── */}
+
+      <div className="cw-col-right">
 
       {/* ── HUD ─────────────────────────────────────────────── */}
       <div
@@ -835,23 +869,6 @@ export default function GameClient({ roomId }: { roomId: string }) {
         {statusText()}
       </div>
 
-      {/* ── Grid ────────────────────────────────────────────── */}
-      <Grid
-        grid={game.grid}
-        onCellClick={handleCellClick}
-        myColor={myColor}
-        gameStatus={game.status}
-        currentTurn={game.current_turn}
-        isPlacingNow={isPlacingNow}
-        submitting={submitting}
-        flyingOrbs={flyingOrbs}
-        explodingCells={explodingCells}
-        receivingCells={receivingCells}
-        capturedCells={capturedCells}
-        lastImpactCells={lastImpactCells}
-        mode={game.mode ?? 'classic'}
-      />
-
       {/* ── Share panel (waiting) ───────────────────────────── */}
       {isWaiting && myColor === 'blue' && (
         <div
@@ -962,6 +979,12 @@ export default function GameClient({ roomId }: { roomId: string }) {
         </button>
       )}
 
+      </div>
+      {/* ── /cw-col-right ──────────────────────────────────── */}
+
+      </div>
+      {/* ── /cw-layout ─────────────────────────────────────── */}
+
       {/* ── Game-over hint — visible before overlay slides in ── */}
       {isFinished && !showOverlay && (
         <div
@@ -991,7 +1014,13 @@ export default function GameClient({ roomId }: { roomId: string }) {
       )}
 
       {/* ── Quick-chat / taunts ─────────────────────────────── */}
-      <Chat roomId={roomId} myColor={myColor} gameStatus={game.status} />
+      <Chat
+        roomId={roomId}
+        myColor={myColor}
+        gameStatus={game.status}
+        game={game}
+        onDoubleMoveArm={() => { doubleMoveArmedRef.current = true; }}
+      />
 
       {/* ── Win overlay ──────────────────────────────────────── */}
       {showOverlay && (

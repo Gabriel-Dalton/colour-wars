@@ -128,17 +128,18 @@ export default function Grid({
               }
             }
             return (
-              <Cell
-                key={key}
-                cell={cell}
-                clickable={clickable}
-                isMyCircle={cell.owner === myColor}
-                onClick={() => onCellClick(r, c)}
-                isExploding={explodingCells.has(key)}
-                isReceiving={receivingCells.has(key)}
-                isCapturing={capturedCells.has(key)}
-                isLastMove={!isAnimating && lastImpactCells.has(key)}
-              />
+              <div key={key} data-cw-cell={`${r},${c}`} style={{ display: 'contents' }}>
+                <Cell
+                  cell={cell}
+                  clickable={clickable}
+                  isMyCircle={cell.owner === myColor}
+                  onClick={() => onCellClick(r, c)}
+                  isExploding={explodingCells.has(key)}
+                  isReceiving={receivingCells.has(key)}
+                  isCapturing={capturedCells.has(key)}
+                  isLastMove={!isAnimating && lastImpactCells.has(key)}
+                />
+              </div>
             );
           })
         )}
