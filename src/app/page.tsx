@@ -730,42 +730,6 @@ export default function Home() {
 
       </div>
       {/* ── /cw-home-wrap ──────────────────────────────────── */}
-
-      {/* ── How to play ─────────────────────────────────────── */}
-      <div
-        style={{
-          marginTop: '50px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '7px',
-          position: 'relative',
-          zIndex: 1,
-          alignItems: 'center',
-        }}
-      >
-        {[
-          { n: '01', t: 'Click your circles to add +1 value' },
-          { n: '02', t: 'At 4 points the circle chain-explodes' },
-          { n: '03', t: 'Own every cell to win the board' },
-        ].map(({ n, t }) => (
-          <div
-            key={n}
-            className="ff-space"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              color: 'rgba(170,170,255,0.2)',
-              fontSize: '9px',
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-            }}
-          >
-            <span style={{ color: 'rgba(0,207,255,0.22)', minWidth: '14px' }}>{n}</span>
-            <span>{t}</span>
-          </div>
-        ))}
-      </div>
     </main>
   );
 }
