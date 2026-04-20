@@ -21,6 +21,14 @@ interface ReactionPayload {
 
 const QUICK_MESSAGES = ['HURRY UP', 'LOVE YOU', 'GG', 'OOPS', 'NICE MOVE', "YOU'RE COOKED", 'OOF', 'NOOO'];
 const EMOJIS = ['👍', '😂', '🔥', '💀', '😭', '❤️'];
+const BURST_EMOJIS = ['❤️', '😂', '🔥', '💀', '👍', '🎉', '😭', '🤡', '🎯', '👀'];
+
+interface EmojiBurst {
+  id: string;
+  emoji: string;
+  from: Player;
+  jitter: number;
+}
 
 const COLOR_HEX = { blue: '#00CFFF', red: '#FF2D55' } as const;
 const COLOR_RGB = { blue: '0,207,255', red: '255,45,85' } as const;
@@ -78,6 +86,9 @@ export default function Chat({
   // Keys are fx "kinds" (e.g. 'shake', 'disco', 'wifi', 'peek'). Membership = on.
   const [activeFx, setActiveFx] = useState<Set<string>>(new Set());
 
+  // Transient floating emoji bursts — shown on the side, auto-clear after animation.
+  const [emojiBursts, setEmojiBursts] = useState<EmojiBurst[]>([]);
+
   // Victim's "I'm being peeked" broadcast flag
   const peekVictimRef = useRef(false);
   const peekVictimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -132,6 +143,20 @@ export default function Chat({
         if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
         incomingTimerRef.current = setTimeout(() => setIncoming(null), 3400);
       }
+    });
+    channel.on('broadcast', { event: 'emoji_burst' }, (payload) => {
+      const p = payload.payload as { emoji: string; from: Player };
+      if (p.from === myColor) return;
+      const burst: EmojiBurst = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        emoji: p.emoji,
+        from: p.from,
+        jitter: Math.random() * 28 - 14,
+      };
+      setEmojiBursts((prev) => [...prev.slice(-7), burst]);
+      setTimeout(() => {
+        setEmojiBursts((prev) => prev.filter((b) => b.id !== burst.id));
+      }, 1600);
     });
     channel.on('broadcast', { event: 'reaction' }, (payload) => {
       const r = payload.payload as ReactionPayload;
@@ -328,6 +353,7 @@ export default function Chat({
 @keyframes cw-emoji-fall { 0%{transform:translateY(-8vh) rotate(0deg);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(108vh) rotate(520deg);opacity:0.7} }
 @keyframes cw-ghost-drift { 0%{transform:translate(8vw,12vh)} 25%{transform:translate(82vw,22vh)} 50%{transform:translate(24vw,78vh)} 75%{transform:translate(78vw,68vh)} 100%{transform:translate(8vw,12vh)} }
 @keyframes cw-fake-move-pulse { 0%{box-shadow:0 0 0 0 rgba(255,45,85,0.55)} 100%{box-shadow:0 0 0 40px rgba(255,45,85,0)} }
+@keyframes cw-emoji-burst { 0%{transform:translate(var(--cw-jx,0),12px) scale(0.6);opacity:0} 15%{transform:translate(var(--cw-jx,0),0) scale(1.15);opacity:1} 55%{opacity:1} 100%{transform:translate(var(--cw-jx,0),-140px) scale(0.9);opacity:0} }
 `;
     document.head.appendChild(s);
   }, []);
@@ -434,6 +460,26 @@ export default function Chat({
       return { ...prev, [messageId]: next };
     });
     setPickerFor(null);
+  };
+
+  // Sends a floating emoji burst. Sender sees it locally too so it feels responsive.
+  const sendEmojiBurst = (emoji: string) => {
+    if (!channelRef.current || !myColor) return;
+    channelRef.current.send({
+      type: 'broadcast',
+      event: 'emoji_burst',
+      payload: { emoji, from: myColor },
+    });
+    const burst: EmojiBurst = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      emoji,
+      from: myColor,
+      jitter: Math.random() * 28 - 14,
+    };
+    setEmojiBursts((prev) => [...prev.slice(-7), burst]);
+    setTimeout(() => {
+      setEmojiBursts((prev) => prev.filter((b) => b.id !== burst.id));
+    }, 1600);
   };
 
   const showCheatToast = (text: string) => {
@@ -669,6 +715,39 @@ export default function Chat({
 
   return (
     <>
+      {/* ── Floating emoji bursts (side of screen, above COMMS button) ── */}
+      <div
+        aria-hidden
+        style={{
+          position: 'fixed',
+          right: '36px',
+          bottom: '78px',
+          zIndex: 58,
+          pointerEvents: 'none',
+          width: '0',
+          height: '0',
+        }}
+      >
+        {emojiBursts.map((b) => (
+          <span
+            key={b.id}
+            style={{
+              position: 'absolute',
+              right: 0,
+              bottom: 0,
+              fontSize: '34px',
+              lineHeight: 1,
+              filter: `drop-shadow(0 2px 6px rgba(${b.from === 'blue' ? '0,207,255' : '255,45,85'},0.55))`,
+              animation: 'cw-emoji-burst 1.6s cubic-bezier(0.22, 0.9, 0.36, 1) forwards',
+              ['--cw-jx' as string]: `${b.jitter}px`,
+              willChange: 'transform, opacity',
+            } as React.CSSProperties}
+          >
+            {b.emoji}
+          </span>
+        ))}
+      </div>
+
       {/* ── Fake "Wi-Fi disconnected" overlay — triggered by opponent's /blockwifi ── */}
       {wifiBlocked && (
         <div
@@ -1495,6 +1574,62 @@ export default function Chat({
                 </div>
               );
             })}
+          </div>
+
+          {/* Emoji burst picker — one-tap floating emoji send */}
+          <div
+            style={{
+              padding: '8px 10px',
+              borderTop: '1px solid rgba(170,170,255,0.07)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span
+              className="ff-space"
+              style={{
+                color: `rgba(${myRgb},0.45)`,
+                fontSize: '7px',
+                letterSpacing: '0.22em',
+                textTransform: 'uppercase',
+                marginRight: '2px',
+                flexShrink: 0,
+              }}
+            >
+              Send
+            </span>
+            {BURST_EMOJIS.map((e) => (
+              <button
+                key={e}
+                onClick={() => sendEmojiBurst(e)}
+                title={`Send ${e}`}
+                aria-label={`Send ${e}`}
+                style={{
+                  background: 'transparent',
+                  border: `1px solid rgba(${myRgb},0.2)`,
+                  borderRadius: '3px',
+                  padding: '3px 6px',
+                  fontSize: '16px',
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                  transition: 'all 0.12s ease',
+                }}
+                onMouseEnter={(ev) => {
+                  ev.currentTarget.style.background = `rgba(${myRgb},0.12)`;
+                  ev.currentTarget.style.borderColor = `rgba(${myRgb},0.6)`;
+                  ev.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(ev) => {
+                  ev.currentTarget.style.background = 'transparent';
+                  ev.currentTarget.style.borderColor = `rgba(${myRgb},0.2)`;
+                  ev.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {e}
+              </button>
+            ))}
           </div>
 
           {/* Quick taunts */}
