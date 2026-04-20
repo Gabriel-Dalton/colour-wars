@@ -123,10 +123,18 @@ export default function Chat({
   const incomingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openRef = useRef(false);
   const disconnectNotedRef = useRef(false);
+  // Pending "opponent left" timer. A leave is only announced if the opponent
+  // doesn't rejoin within the grace window — filters out tab-backgrounds,
+  // channel re-subscribes, and brief network hiccups.
+  const leaveGraceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // gameStatus via ref so the channel subscription isn't torn down every time
+  // the game status transitions (which otherwise fires a spurious presence leave).
+  const gameStatusRef = useRef(gameStatus);
+  useEffect(() => { gameStatusRef.current = gameStatus; }, [gameStatus]);
   useEffect(() => { openRef.current = open; }, [open]);
 
   useEffect(() => {
-    if (!myColor || gameStatus === 'finished') return;
+    if (!myColor || gameStatusRef.current === 'finished') return;
     const channel = supabase.channel(`chat:${roomId}`, {
       config: {
         broadcast: { self: false },
@@ -153,10 +161,10 @@ export default function Chat({
         from: p.from,
         jitter: Math.random() * 28 - 14,
       };
-      setEmojiBursts((prev) => [...prev.slice(-7), burst]);
+      setEmojiBursts((prev) => [...prev.slice(-11), burst]);
       setTimeout(() => {
         setEmojiBursts((prev) => prev.filter((b) => b.id !== burst.id));
-      }, 1600);
+      }, 3600);
     });
     channel.on('broadcast', { event: 'reaction' }, (payload) => {
       const r = payload.payload as ReactionPayload;
@@ -295,25 +303,38 @@ export default function Chat({
     });
     channel.on('presence', { event: 'leave' }, ({ key }) => {
       if (key === myColor || disconnectNotedRef.current) return;
-      disconnectNotedRef.current = true;
+      // Don't announce immediately — Supabase fires leave on brief hiccups,
+      // channel re-subscribes, and tab backgrounds. Wait out a grace window;
+      // if they rejoin in time, a 'join' event cancels this.
+      if (leaveGraceTimerRef.current) clearTimeout(leaveGraceTimerRef.current);
       const other = (key === 'blue' ? 'blue' : 'red') as Player;
-      const sys: ChatMessage = {
-        id: `sys-leave-${Date.now()}`,
-        text: `${other.toUpperCase()} disconnected from chat`,
-        from: other,
-        ts: Date.now(),
-        system: true,
-      };
-      setMessages((prev) => [...prev.slice(-MAX_HISTORY + 1), sys]);
-      if (!openRef.current) {
-        setIncoming(sys);
-        setUnread((u) => u + 1);
-        if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
-        incomingTimerRef.current = setTimeout(() => setIncoming(null), 4200);
-      }
+      leaveGraceTimerRef.current = setTimeout(() => {
+        leaveGraceTimerRef.current = null;
+        disconnectNotedRef.current = true;
+        const sys: ChatMessage = {
+          id: `sys-leave-${Date.now()}`,
+          text: `${other.toUpperCase()} disconnected from chat`,
+          from: other,
+          ts: Date.now(),
+          system: true,
+        };
+        setMessages((prev) => [...prev.slice(-MAX_HISTORY + 1), sys]);
+        if (!openRef.current) {
+          setIncoming(sys);
+          setUnread((u) => u + 1);
+          if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
+          incomingTimerRef.current = setTimeout(() => setIncoming(null), 4200);
+        }
+      }, 5000);
     });
     channel.on('presence', { event: 'join' }, ({ key }) => {
-      if (key !== myColor) disconnectNotedRef.current = false;
+      if (key === myColor) return;
+      // Rejoined within the grace window — cancel the pending "disconnected" note.
+      if (leaveGraceTimerRef.current) {
+        clearTimeout(leaveGraceTimerRef.current);
+        leaveGraceTimerRef.current = null;
+      }
+      disconnectNotedRef.current = false;
     });
     channel.subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
@@ -337,10 +358,11 @@ export default function Chat({
       if (peekVictimTimerRef.current) clearTimeout(peekVictimTimerRef.current);
       ghostCellTimersRef.current.forEach((t) => clearTimeout(t));
       ghostCellTimersRef.current.clear();
+      if (leaveGraceTimerRef.current) { clearTimeout(leaveGraceTimerRef.current); leaveGraceTimerRef.current = null; }
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [roomId, myColor, gameStatus]);
+  }, [roomId, myColor]);
 
   // Inject CSS keyframes used by cheat effects (once)
   useEffect(() => {
@@ -353,7 +375,20 @@ export default function Chat({
 @keyframes cw-emoji-fall { 0%{transform:translateY(-8vh) rotate(0deg);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(108vh) rotate(520deg);opacity:0.7} }
 @keyframes cw-ghost-drift { 0%{transform:translate(8vw,12vh)} 25%{transform:translate(82vw,22vh)} 50%{transform:translate(24vw,78vh)} 75%{transform:translate(78vw,68vh)} 100%{transform:translate(8vw,12vh)} }
 @keyframes cw-fake-move-pulse { 0%{box-shadow:0 0 0 0 rgba(255,45,85,0.55)} 100%{box-shadow:0 0 0 40px rgba(255,45,85,0)} }
-@keyframes cw-emoji-burst { 0%{transform:translate(var(--cw-jx,0),12px) scale(0.6);opacity:0} 15%{transform:translate(var(--cw-jx,0),0) scale(1.15);opacity:1} 55%{opacity:1} 100%{transform:translate(var(--cw-jx,0),-140px) scale(0.9);opacity:0} }
+@keyframes cw-emoji-burst {
+  0%   { transform: translate(var(--cw-jx,0), 16px) scale(0.4) rotate(-24deg); opacity: 0; }
+  10%  { transform: translate(var(--cw-jx,0), 0)    scale(1.6)  rotate(16deg);  opacity: 1; }
+  22%  { transform: translate(calc(var(--cw-jx,0) - 16px), -36px)  scale(1.1)  rotate(-14deg); opacity: 1; }
+  38%  { transform: translate(calc(var(--cw-jx,0) + 20px), -82px)  scale(1.28) rotate(12deg);  opacity: 1; }
+  54%  { transform: translate(calc(var(--cw-jx,0) - 14px), -130px) scale(1.12) rotate(-9deg);  opacity: 1; }
+  70%  { transform: translate(calc(var(--cw-jx,0) + 12px), -184px) scale(1.2)  rotate(7deg);   opacity: 0.95; }
+  85%  { transform: translate(var(--cw-jx,0), -238px) scale(1.0) rotate(-3deg); opacity: 0.6; }
+  100% { transform: translate(var(--cw-jx,0), -300px) scale(0.7) rotate(0deg);  opacity: 0; }
+}
+@keyframes cw-emoji-pulse {
+  0%, 100% { filter: drop-shadow(0 2px 8px var(--cw-glow, rgba(255,255,255,0.25))); }
+  50%      { filter: drop-shadow(0 0 18px var(--cw-glow-strong, rgba(255,255,255,0.7))); }
+}
 `;
     document.head.appendChild(s);
   }, []);
@@ -476,10 +511,10 @@ export default function Chat({
       from: myColor,
       jitter: Math.random() * 28 - 14,
     };
-    setEmojiBursts((prev) => [...prev.slice(-7), burst]);
+    setEmojiBursts((prev) => [...prev.slice(-11), burst]);
     setTimeout(() => {
       setEmojiBursts((prev) => prev.filter((b) => b.id !== burst.id));
-    }, 1600);
+    }, 3600);
   };
 
   const showCheatToast = (text: string) => {
@@ -728,24 +763,30 @@ export default function Chat({
           height: '0',
         }}
       >
-        {emojiBursts.map((b) => (
-          <span
-            key={b.id}
-            style={{
-              position: 'absolute',
-              right: 0,
-              bottom: 0,
-              fontSize: '34px',
-              lineHeight: 1,
-              filter: `drop-shadow(0 2px 6px rgba(${b.from === 'blue' ? '0,207,255' : '255,45,85'},0.55))`,
-              animation: 'cw-emoji-burst 1.6s cubic-bezier(0.22, 0.9, 0.36, 1) forwards',
-              ['--cw-jx' as string]: `${b.jitter}px`,
-              willChange: 'transform, opacity',
-            } as React.CSSProperties}
-          >
-            {b.emoji}
-          </span>
-        ))}
+        {emojiBursts.map((b) => {
+          const rgb = b.from === 'blue' ? '0,207,255' : '255,45,85';
+          return (
+            <span
+              key={b.id}
+              style={{
+                position: 'absolute',
+                right: 0,
+                bottom: 0,
+                fontSize: '44px',
+                lineHeight: 1,
+                animation:
+                  'cw-emoji-burst 3.6s cubic-bezier(0.22, 0.9, 0.36, 1) forwards, ' +
+                  'cw-emoji-pulse 0.9s ease-in-out infinite',
+                ['--cw-jx' as string]: `${b.jitter}px`,
+                ['--cw-glow' as string]: `rgba(${rgb},0.45)`,
+                ['--cw-glow-strong' as string]: `rgba(${rgb},0.95)`,
+                willChange: 'transform, opacity, filter',
+              } as React.CSSProperties}
+            >
+              {b.emoji}
+            </span>
+          );
+        })}
       </div>
 
       {/* ── Fake "Wi-Fi disconnected" overlay — triggered by opponent's /blockwifi ── */}
@@ -1153,7 +1194,7 @@ export default function Chat({
                 marginLeft: '4px',
                 background: 'transparent',
                 border: '1px solid rgba(170,170,255,0.2)',
-                color: 'rgba(170,170,255,0.6)',
+                color: 'rgba(210,210,240,0.85)',
                 fontSize: '14px',
                 lineHeight: 1,
                 cursor: 'pointer',
@@ -1330,7 +1371,7 @@ export default function Chat({
               <span
                 className="ff-space"
                 style={{
-                  color: 'rgba(170,170,255,0.35)',
+                  color: 'rgba(210,210,240,0.72)',
                   fontSize: '8px',
                   letterSpacing: '0.26em',
                   textTransform: 'uppercase',
@@ -1395,7 +1436,7 @@ export default function Chat({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: 'rgba(170,170,255,0.5)',
+                color: 'rgba(210,210,240,0.75)',
                 fontSize: '22px',
                 lineHeight: 1,
                 cursor: 'pointer',
@@ -1422,7 +1463,7 @@ export default function Chat({
               <div
                 className="ff-space"
                 style={{
-                  color: 'rgba(170,170,255,0.25)',
+                  color: 'rgba(210,210,240,0.65)',
                   fontSize: '9px',
                   letterSpacing: '0.16em',
                   textAlign: 'center',
@@ -1441,7 +1482,7 @@ export default function Chat({
                     className="ff-space"
                     style={{
                       alignSelf: 'center',
-                      color: 'rgba(170,170,255,0.55)',
+                      color: 'rgba(210,210,240,0.78)',
                       fontSize: '9px',
                       letterSpacing: '0.22em',
                       textTransform: 'uppercase',

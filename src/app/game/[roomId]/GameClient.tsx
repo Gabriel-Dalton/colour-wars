@@ -658,15 +658,15 @@ export default function GameClient({ roomId }: { roomId: string }) {
           className="ff-bebas"
           style={{ margin: 0, fontSize: '17px', letterSpacing: '0.32em', lineHeight: 1 }}
         >
-          <span style={{ color: 'rgba(0,207,255,0.45)' }}>COLOUR </span>
-          <span style={{ color: 'rgba(255,45,85,0.45)' }}>WARS</span>
+          <span style={{ color: 'rgba(0,207,255,0.9)' }}>COLOUR </span>
+          <span style={{ color: 'rgba(255,45,85,0.9)' }}>WARS</span>
         </h1>
         <div
           className="ff-space"
-          style={{ color: 'rgba(170,170,255,0.2)', fontSize: '9px', letterSpacing: '0.18em', display: 'flex', gap: '10px', alignItems: 'center' }}
+          style={{ color: 'rgba(210,210,240,0.65)', fontSize: '9px', letterSpacing: '0.18em', display: 'flex', gap: '10px', alignItems: 'center' }}
         >
           <span>ROOM: {roomId}</span>
-          <span style={{ color: 'rgba(170,170,255,0.35)', letterSpacing: '0.2em' }}>
+          <span style={{ color: 'rgba(210,210,240,0.72)', letterSpacing: '0.2em' }}>
             · {(game.mode ?? 'classic').toUpperCase()}
           </span>
         </div>
@@ -763,7 +763,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
         >
           <span
             className="ff-bebas"
-            style={{ color: 'rgba(170,170,255,0.18)', fontSize: '20px', letterSpacing: '0.1em' }}
+            style={{ color: 'rgba(210,210,240,0.55)', fontSize: '20px', letterSpacing: '0.1em' }}
           >
             VS
           </span>
@@ -839,13 +839,13 @@ export default function GameClient({ roomId }: { roomId: string }) {
             />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-            <span className="ff-space" style={{ color: 'rgba(0,207,255,0.3)', fontSize: '8px', letterSpacing: '0.1em' }}>
+            <span className="ff-space" style={{ color: 'rgba(0,207,255,0.8)', fontSize: '8px', letterSpacing: '0.1em' }}>
               {Math.round(blueTerrPct)}%
             </span>
-            <span className="ff-space" style={{ color: 'rgba(170,170,255,0.16)', fontSize: '8px', letterSpacing: '0.1em' }}>
+            <span className="ff-space" style={{ color: 'rgba(210,210,240,0.6)', fontSize: '8px', letterSpacing: '0.1em' }}>
               TERRITORY
             </span>
-            <span className="ff-space" style={{ color: 'rgba(255,45,85,0.3)', fontSize: '8px', letterSpacing: '0.1em' }}>
+            <span className="ff-space" style={{ color: 'rgba(255,45,85,0.8)', fontSize: '8px', letterSpacing: '0.1em' }}>
               {Math.round(100 - blueTerrPct)}%
             </span>
           </div>
@@ -931,7 +931,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
               style={{
                 gridColumn: '1 / -1',
                 textAlign: 'center',
-                color: 'rgba(170,170,255,0.4)',
+                color: 'rgba(210,210,240,0.75)',
                 fontSize: '8px',
                 letterSpacing: '0.2em',
                 textTransform: 'uppercase',
@@ -989,7 +989,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
           <p
             className="ff-space"
             style={{
-              color: 'rgba(170,170,255,0.3)',
+              color: 'rgba(210,210,240,0.7)',
               fontSize: '9px',
               letterSpacing: '0.2em',
               margin: 0,
@@ -1059,7 +1059,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
           style={{
             background: 'none',
             border: 'none',
-            color: 'rgba(170,170,255,0.16)',
+            color: 'rgba(210,210,240,0.6)',
             fontSize: '10px',
             letterSpacing: '0.12em',
             cursor: 'pointer',
@@ -1069,7 +1069,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
             position: 'relative',
             zIndex: 1,
           }}
-          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(170,170,255,0.42)'; }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(210,210,240,0.88)'; }}
           onMouseLeave={e => { e.currentTarget.style.color = 'rgba(170,170,255,0.16)'; }}
         >
           ← LEAVE
@@ -1198,11 +1198,11 @@ export default function GameClient({ roomId }: { roomId: string }) {
                 >
                   {counts.blue}
                 </div>
-                <div className="ff-space" style={{ color: 'rgba(0,207,255,0.35)', fontSize: '8px', letterSpacing: '0.18em', marginTop: '4px' }}>
+                <div className="ff-space" style={{ color: 'rgba(0,207,255,0.8)', fontSize: '8px', letterSpacing: '0.18em', marginTop: '4px' }}>
                   BLUE
                 </div>
               </div>
-              <div className="ff-bebas" style={{ color: 'rgba(170,170,255,0.15)', fontSize: '22px' }}>:</div>
+              <div className="ff-bebas" style={{ color: 'rgba(210,210,240,0.6)', fontSize: '22px' }}>:</div>
               <div style={{ textAlign: 'center' }}>
                 <div
                   className="ff-orbit"
@@ -1216,7 +1216,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
                 >
                   {counts.red}
                 </div>
-                <div className="ff-space" style={{ color: 'rgba(255,45,85,0.35)', fontSize: '8px', letterSpacing: '0.18em', marginTop: '4px' }}>
+                <div className="ff-space" style={{ color: 'rgba(255,45,85,0.8)', fontSize: '8px', letterSpacing: '0.18em', marginTop: '4px' }}>
                   RED
                 </div>
               </div>
@@ -1260,7 +1260,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
                   <div
                     className="ff-space"
                     style={{
-                      color: 'rgba(170,170,255,0.55)',
+                      color: 'rgba(210,210,240,0.78)',
                       fontSize: '8px',
                       letterSpacing: '0.28em',
                       marginBottom: '8px',
@@ -1319,7 +1319,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
                       <span
                         className="ff-space"
                         style={{
-                          color: 'rgba(170,170,255,0.55)',
+                          color: 'rgba(210,210,240,0.78)',
                           fontSize: '9px',
                           letterSpacing: '0.18em',
                           textTransform: 'uppercase',

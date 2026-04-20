@@ -395,7 +395,7 @@ export default function Home() {
         <p
           className="ff-space"
           style={{
-            color: 'rgba(170,170,255,0.38)',
+            color: 'rgba(210,210,240,0.72)',
             fontSize: '10px',
             letterSpacing: '0.26em',
             marginTop: '12px',
@@ -416,7 +416,7 @@ export default function Home() {
           <span
             className="ff-space"
             style={{
-              color: 'rgba(170,170,255,0.3)',
+              color: 'rgba(210,210,240,0.72)',
               fontSize: '9px',
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
@@ -447,7 +447,7 @@ export default function Home() {
                     padding: '10px 8px 8px',
                     background: active ? 'rgba(0,207,255,0.12)' : 'transparent',
                     border: `1px solid ${active ? 'rgba(0,207,255,0.55)' : 'transparent'}`,
-                    color: active ? '#00CFFF' : 'rgba(170,170,255,0.45)',
+                    color: active ? '#00CFFF' : 'rgba(210,210,240,0.78)',
                     fontSize: '18px',
                     letterSpacing: '0.14em',
                     cursor: 'pointer',
@@ -521,7 +521,7 @@ export default function Home() {
           <div style={{ flex: 1, height: '1px', background: 'rgba(170,170,255,0.07)' }} />
           <span
             className="ff-space"
-            style={{ color: 'rgba(170,170,255,0.2)', fontSize: '9px', letterSpacing: '0.2em' }}
+            style={{ color: 'rgba(210,210,240,0.65)', fontSize: '9px', letterSpacing: '0.2em' }}
           >
             OR JOIN WITH CODE
           </span>
@@ -639,7 +639,7 @@ export default function Home() {
             <span
               className="ff-space"
               style={{
-                color: 'rgba(170,170,255,0.45)',
+                color: 'rgba(210,210,240,0.78)',
                 fontSize: '9px',
                 letterSpacing: '0.24em',
                 textTransform: 'uppercase',
@@ -651,7 +651,7 @@ export default function Home() {
             <span
               className="ff-space"
               style={{
-                color: 'rgba(170,170,255,0.3)',
+                color: 'rgba(210,210,240,0.72)',
                 fontSize: '8px',
                 letterSpacing: '0.2em',
               }}
@@ -717,7 +717,7 @@ export default function Home() {
                   <span className="ff-orbit" style={{ fontSize: '15px', letterSpacing: '0.18em', color: '#00CFFF' }}>
                     {r.id}
                   </span>
-                  <span style={{ color: 'rgba(170,170,255,0.35)', fontSize: '9px' }}>
+                  <span style={{ color: 'rgba(210,210,240,0.72)', fontSize: '9px' }}>
                     · {(r.mode ?? 'classic').toUpperCase()}
                   </span>
                 </span>
