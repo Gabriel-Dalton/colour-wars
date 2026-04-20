@@ -3,26 +3,8 @@
 A real-time, two-player grid conquest game with a neo-arcade aesthetic. Pick a starting square, chain-react your circles across a 5×5 board, and talk smack in live chat until one colour owns everything.
 
 <p align="center">
-  <img src="docs/home.png" alt="Home screen" width="420" />
+  <img src="https://github.com/user-attachments/assets/db84bced-2f58-498c-b2d5-41ac93ff66f7" alt="Home screen" width="420" />
 </p>
-
-> Drop your own screenshots into a `docs/` folder at the project root with the filenames below (`home.png`, `game.png`, `explosion.png`, `chat.png`, `victory.png`) and they'll render automatically.
-
----
-
-## Screenshots
-
-| Lobby | In-game HUD |
-|:---:|:---:|
-| <img src="docs/home.png" width="320" /> | <img src="docs/game.png" width="320" /> |
-
-| Chain reaction | Live chat |
-|:---:|:---:|
-| <img src="docs/explosion.png" width="320" /> | <img src="docs/chat.png" width="320" /> |
-
-| Victory |
-|:---:|
-| <img src="docs/victory.png" width="320" /> |
 
 ---
 
