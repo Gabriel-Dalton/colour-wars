@@ -16,6 +16,7 @@ import {
 } from '@/lib/gameLogic';
 import Grid, { FlyingOrbData } from '@/components/Grid';
 import Chat from '@/components/Chat';
+import { useMatchStats, formatDuration } from '@/lib/useMatchStats';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 function getOrCreatePlayerId(): string {
@@ -497,6 +498,9 @@ export default function GameClient({ roomId }: { roomId: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Match stats hook — must be called every render, before any early return
+  const stats = useMatchStats(game);
+
   /* ── Loading ────────────────────────────────────────────── */
   if (loading) {
     return (
@@ -848,6 +852,99 @@ export default function GameClient({ roomId }: { roomId: string }) {
         </div>
       )}
 
+      {/* ── Live match stats strip ──────────────────────────── */}
+      {game.status === 'playing' && stats.durationMs > 1000 && (
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '360px',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr',
+            gap: '6px',
+            position: 'relative',
+            zIndex: 1,
+          }}
+        >
+          {[
+            {
+              label: 'BLUE LEAD',
+              value: formatDuration(stats.leadMsBlue),
+              color: '#00CFFF',
+              rgb: '0,207,255',
+              active: stats.currentLeader === 'blue',
+            },
+            {
+              label: 'TIME',
+              value: formatDuration(stats.durationMs),
+              color: 'rgba(240,240,255,0.75)',
+              rgb: '170,170,255',
+              active: false,
+            },
+            {
+              label: 'RED LEAD',
+              value: formatDuration(stats.leadMsRed),
+              color: '#FF2D55',
+              rgb: '255,45,85',
+              active: stats.currentLeader === 'red',
+            },
+          ].map((box) => (
+            <div
+              key={box.label}
+              style={{
+                padding: '6px 4px 5px',
+                background: box.active ? `rgba(${box.rgb},0.08)` : 'rgba(13,13,34,0.55)',
+                border: `1px solid rgba(${box.rgb},${box.active ? 0.45 : 0.12})`,
+                borderRadius: '3px',
+                textAlign: 'center',
+                transition: 'all 0.3s ease',
+              }}
+            >
+              <div
+                className="ff-orbit"
+                style={{
+                  color: box.color,
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  lineHeight: 1.1,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {box.value}
+              </div>
+              <div
+                className="ff-space"
+                style={{
+                  color: `rgba(${box.rgb},${box.active ? 0.65 : 0.38})`,
+                  fontSize: '7px',
+                  letterSpacing: '0.2em',
+                  marginTop: '1px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {box.label}
+              </div>
+            </div>
+          ))}
+          {stats.leadChanges > 0 && (
+            <div
+              className="ff-space"
+              style={{
+                gridColumn: '1 / -1',
+                textAlign: 'center',
+                color: 'rgba(170,170,255,0.4)',
+                fontSize: '8px',
+                letterSpacing: '0.2em',
+                textTransform: 'uppercase',
+                marginTop: '2px',
+              }}
+            >
+              {stats.leadChanges} lead change{stats.leadChanges === 1 ? '' : 's'}
+              {stats.biggestChain > 1 ? ` · biggest swing ${stats.biggestChain}` : ''}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Status ──────────────────────────────────────────── */}
       <div
         className="ff-space"
@@ -1124,6 +1221,127 @@ export default function GameClient({ roomId }: { roomId: string }) {
                 </div>
               </div>
             </div>
+
+            {/* ── Match stats ────────────────────────────────── */}
+            {(() => {
+              const totalLeadMs = stats.leadMsBlue + stats.leadMsRed;
+              const bluePct = totalLeadMs > 0 ? Math.round((stats.leadMsBlue / totalLeadMs) * 100) : 50;
+              const redPct = 100 - bluePct;
+              const chainColor =
+                stats.biggestChainBy === 'blue' ? '#00CFFF' :
+                stats.biggestChainBy === 'red' ? '#FF2D55' : 'rgba(240,240,255,0.85)';
+              const rows = [
+                { label: 'Duration', value: formatDuration(stats.durationMs) },
+                { label: 'Total moves', value: `${stats.totalMoves}` },
+                { label: 'Lead changes', value: `${stats.leadChanges}` },
+                {
+                  label: 'Biggest swing',
+                  value: stats.biggestChain > 0
+                    ? `${stats.biggestChain} cells`
+                    : '—',
+                  color: chainColor,
+                },
+                {
+                  label: 'Peak dominance',
+                  value: `${stats.peakBlue}B · ${stats.peakRed}R`,
+                },
+              ];
+              return (
+                <div
+                  style={{
+                    margin: '0 0 18px',
+                    padding: '12px 14px 14px',
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(170,170,255,0.1)',
+                    borderRadius: '4px',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div
+                    className="ff-space"
+                    style={{
+                      color: 'rgba(170,170,255,0.55)',
+                      fontSize: '8px',
+                      letterSpacing: '0.28em',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      textAlign: 'center',
+                    }}
+                  >
+                    Match Stats
+                  </div>
+
+                  {/* Lead-time bar */}
+                  {totalLeadMs > 0 && (
+                    <div style={{ marginBottom: '10px' }}>
+                      <div
+                        style={{
+                          height: '6px',
+                          borderRadius: '3px',
+                          overflow: 'hidden',
+                          background: 'rgba(255,45,85,0.45)',
+                          position: 'relative',
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            height: '100%',
+                            width: `${bluePct}%`,
+                            background: 'rgba(0,207,255,0.75)',
+                          }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
+                        <span className="ff-space" style={{ color: 'rgba(0,207,255,0.75)', fontSize: '8px', letterSpacing: '0.14em' }}>
+                          BLUE LED {formatDuration(stats.leadMsBlue)} ({bluePct}%)
+                        </span>
+                        <span className="ff-space" style={{ color: 'rgba(255,45,85,0.75)', fontSize: '8px', letterSpacing: '0.14em' }}>
+                          ({redPct}%) {formatDuration(stats.leadMsRed)} RED LED
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {rows.map((r) => (
+                    <div
+                      key={r.label}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        justifyContent: 'space-between',
+                        padding: '4px 0',
+                        borderTop: '1px dashed rgba(170,170,255,0.08)',
+                      }}
+                    >
+                      <span
+                        className="ff-space"
+                        style={{
+                          color: 'rgba(170,170,255,0.55)',
+                          fontSize: '9px',
+                          letterSpacing: '0.18em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        {r.label}
+                      </span>
+                      <span
+                        className="ff-orbit"
+                        style={{
+                          color: r.color ?? 'rgba(240,240,255,0.9)',
+                          fontSize: '12px',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {r.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             {(() => {
               const iRequested = game.rematch_requested_by === myColor;

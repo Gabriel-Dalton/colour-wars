@@ -74,6 +74,9 @@ export default function Chat({
   // ── Prankster-side state ──
   const [peekActive, setPeekActive] = useState(false);
   const [peekPos, setPeekPos] = useState<{ x: number; y: number } | null>(null);
+  // Tracks which toggleable cheats the prankster currently has ON.
+  // Keys are fx "kinds" (e.g. 'shake', 'disco', 'wifi', 'peek'). Membership = on.
+  const [activeFx, setActiveFx] = useState<Set<string>>(new Set());
 
   // Victim's "I'm being peeked" broadcast flag
   const peekVictimRef = useRef(false);
@@ -156,51 +159,31 @@ export default function Chat({
 
     // Generic victim-side FX dispatcher
     channel.on('broadcast', { event: 'fx' }, (payload) => {
-      const p = payload.payload as { kind: string; from: Player; extra?: unknown };
+      const p = payload.payload as { kind: string; from: Player; action?: 'on' | 'off' | 'once'; extra?: unknown };
       if (p.from === myColor) return;
+      // Safety timer for toggleables: 60s in case the prankster vanishes.
+      const SAFETY_MS = 60000;
+      const action = p.action ?? 'once';
+      // Helper for toggleable on/off state
+      const applyToggle = (
+        setter: (v: boolean) => void,
+        timerRef: { current: ReturnType<typeof setTimeout> | null },
+        onceMs: number
+      ) => {
+        if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+        if (action === 'off') { setter(false); return; }
+        setter(true);
+        const dur = action === 'on' ? SAFETY_MS : onceMs;
+        timerRef.current = setTimeout(() => setter(false), dur);
+      };
       switch (p.kind) {
-        case 'shake': {
-          setShaking(true);
-          if (shakeTimerRef.current) clearTimeout(shakeTimerRef.current);
-          shakeTimerRef.current = setTimeout(() => setShaking(false), 3000);
-          break;
-        }
-        case 'disco': {
-          setDisco(true);
-          if (discoTimerRef.current) clearTimeout(discoTimerRef.current);
-          discoTimerRef.current = setTimeout(() => setDisco(false), 4000);
-          break;
-        }
-        case 'colorblind': {
-          setColorblind(true);
-          if (colorblindTimerRef.current) clearTimeout(colorblindTimerRef.current);
-          colorblindTimerRef.current = setTimeout(() => setColorblind(false), 6000);
-          break;
-        }
-        case 'mirror': {
-          setMirror(true);
-          if (mirrorTimerRef.current) clearTimeout(mirrorTimerRef.current);
-          mirrorTimerRef.current = setTimeout(() => setMirror(false), 5000);
-          break;
-        }
-        case 'fog': {
-          setFogOn(true);
-          if (fogTimerRef.current) clearTimeout(fogTimerRef.current);
-          fogTimerRef.current = setTimeout(() => setFogOn(false), 6000);
-          break;
-        }
-        case 'ghostcursor': {
-          setGhostCursor(true);
-          if (ghostCursorTimerRef.current) clearTimeout(ghostCursorTimerRef.current);
-          ghostCursorTimerRef.current = setTimeout(() => setGhostCursor(false), 5000);
-          break;
-        }
-        case 'spam': {
-          setSpamActive(true);
-          if (spamTimerRef.current) clearTimeout(spamTimerRef.current);
-          spamTimerRef.current = setTimeout(() => setSpamActive(false), 5000);
-          break;
-        }
+        case 'shake':       applyToggle(setShaking,     shakeTimerRef,       3000); break;
+        case 'disco':       applyToggle(setDisco,       discoTimerRef,       4000); break;
+        case 'colorblind':  applyToggle(setColorblind,  colorblindTimerRef,  6000); break;
+        case 'mirror':      applyToggle(setMirror,      mirrorTimerRef,      5000); break;
+        case 'fog':         applyToggle(setFogOn,       fogTimerRef,         6000); break;
+        case 'ghostcursor': applyToggle(setGhostCursor, ghostCursorTimerRef, 5000); break;
+        case 'spam':        applyToggle(setSpamActive,  spamTimerRef,        5000); break;
         case 'airhorn': {
           try {
             const Ctx = (window as unknown as { AudioContext: typeof AudioContext; webkitAudioContext: typeof AudioContext }).AudioContext
@@ -265,11 +248,14 @@ export default function Chat({
           ghostCellTimersRef.current.set(coord, t);
           break;
         }
-        case 'peek_start': {
-          // victim begins broadcasting its cursor
-          if (peekVictimTimerRef.current) clearTimeout(peekVictimTimerRef.current);
+        case 'peek_start':
+        case 'peek': {
+          // Victim starts (or stops) broadcasting its cursor.
+          if (peekVictimTimerRef.current) { clearTimeout(peekVictimTimerRef.current); peekVictimTimerRef.current = null; }
+          if (action === 'off') { peekVictimRef.current = false; break; }
           peekVictimRef.current = true;
-          peekVictimTimerRef.current = setTimeout(() => { peekVictimRef.current = false; }, 10000);
+          const dur = action === 'on' ? SAFETY_MS : 10000;
+          peekVictimTimerRef.current = setTimeout(() => { peekVictimRef.current = false; }, dur);
           break;
         }
         default: break;
@@ -416,6 +402,9 @@ export default function Chat({
     setOpen(false);
     setPickerFor(null);
     setDraft('');
+    setActiveFx(new Set());
+    setPeekActive(false);
+    setPeekPos(null);
   }, [gameStatus]);
 
   useEffect(() => {
@@ -453,49 +442,89 @@ export default function Chat({
     cheatToastTimerRef.current = setTimeout(() => setCheatToast(null), 2200);
   };
 
-  // Fire a broadcast fx event (one-shot victim-side effect)
-  const sendFx = (kind: string, extra?: unknown) => {
+  // Fire a broadcast fx event. action defaults to 'once' (existing one-shot behavior).
+  const sendFx = (kind: string, extra?: unknown, action: 'on' | 'off' | 'once' = 'once') => {
     if (!channelRef.current || !myColor) return;
     channelRef.current.send({
       type: 'broadcast',
       event: 'fx',
-      payload: { kind, from: myColor, extra },
+      payload: { kind, action, from: myColor, extra },
     });
+  };
+
+  // Toggle a sticky cheat: flip prankster-side active state + broadcast on/off.
+  // Returns the new state (true = now active). Handles wifi's distinct event too.
+  const toggleFx = (kind: string): boolean => {
+    const isOn = activeFx.has(kind);
+    const next = !isOn;
+    setActiveFx((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(kind); else s.delete(kind);
+      return s;
+    });
+    if (kind === 'wifi') {
+      channelRef.current?.send({
+        type: 'broadcast',
+        event: 'wifi',
+        payload: { action: next ? 'block' : 'unblock', from: myColor },
+      });
+    } else {
+      sendFx(kind, undefined, next ? 'on' : 'off');
+    }
+    return next;
+  };
+
+  // Maps slash commands to the fx kind they toggle.
+  const TOGGLE_CMDS: Record<string, string> = {
+    '/blockwifi': 'wifi',
+    '/wifi': 'wifi',
+    '/shake': 'shake',
+    '/disco': 'disco',
+    '/rave': 'disco',
+    '/colorblind': 'colorblind',
+    '/hue': 'colorblind',
+    '/ghostcursor': 'ghostcursor',
+    '/spam': 'spam',
+    '/mirror': 'mirror',
+    '/fog': 'fog',
+    '/peek': 'peek',
   };
 
   // Handle all unlocked slash commands. Returns true if the command was consumed.
   const runCheatCommand = (cmd: string, raw: string): boolean => {
     if (!myColor) return false;
+
+    // Toggleable cheats: a second press turns the effect off.
+    const toggleKind = TOGGLE_CMDS[cmd];
+    if (toggleKind) {
+      const now = toggleFx(toggleKind);
+      // Peek also controls prankster-side cursor overlay.
+      if (toggleKind === 'peek') {
+        if (now) {
+          setPeekActive(true);
+        } else {
+          setPeekActive(false);
+          setPeekPos(null);
+          if (peekTimerRef.current) { clearTimeout(peekTimerRef.current); peekTimerRef.current = null; }
+        }
+      }
+      const labels: Record<string, [string, string]> = {
+        wifi:        ['📶 wifi outage ON',    '📶 wifi restored'],
+        shake:       ['🌀 shake ON',          '🌀 shake OFF'],
+        disco:       ['🪩 disco ON',          '🪩 disco OFF'],
+        colorblind:  ['🎨 hue swap ON',       '🎨 hue swap OFF'],
+        ghostcursor: ['👻 ghost cursor ON',   '👻 ghost cursor OFF'],
+        spam:        ['🌧️ emoji rain ON',    '🌧️ emoji rain OFF'],
+        mirror:      ['🪞 mirror ON',         '🪞 mirror OFF'],
+        fog:         ['🌫️ fog ON',           '🌫️ fog OFF'],
+        peek:        ['👁️ peek ON',          '👁️ peek OFF'],
+      };
+      const [onMsg, offMsg] = labels[toggleKind] ?? ['ON', 'OFF'];
+      showCheatToast(now ? onMsg : offMsg);
+      return true;
+    }
+
     switch (cmd) {
-      case '/blockwifi':
-        channelRef.current?.send({ type: 'broadcast', event: 'wifi', payload: { action: 'block', from: myColor } });
-        showCheatToast('📶 wifi outage deployed');
-        return true;
-      case '/unblockwifi':
-        channelRef.current?.send({ type: 'broadcast', event: 'wifi', payload: { action: 'unblock', from: myColor } });
-        showCheatToast('📶 wifi restored');
-        return true;
-      case '/shake':
-        sendFx('shake');
-        showCheatToast('🌀 shake sent');
-        return true;
-      case '/disco':
-      case '/rave':
-        sendFx('disco');
-        showCheatToast('🪩 disco mode');
-        return true;
-      case '/colorblind':
-        sendFx('colorblind');
-        showCheatToast('🎨 colours swapped');
-        return true;
-      case '/ghostcursor':
-        sendFx('ghostcursor');
-        showCheatToast('👻 ghost cursor deployed');
-        return true;
-      case '/spam':
-        sendFx('spam');
-        showCheatToast('🌧️ emoji rain');
-        return true;
       case '/airhorn':
         sendFx('airhorn');
         showCheatToast('📯 airhorn!');
@@ -507,21 +536,6 @@ export default function Chat({
       case '/fakeleave':
         sendFx('fakeleave');
         showCheatToast('🎭 fake leave sent');
-        return true;
-      case '/mirror':
-        sendFx('mirror');
-        showCheatToast('🪞 board mirrored');
-        return true;
-      case '/fog':
-        sendFx('fog');
-        showCheatToast('🌫️ fog deployed');
-        return true;
-      case '/peek':
-        sendFx('peek_start');
-        setPeekActive(true);
-        if (peekTimerRef.current) clearTimeout(peekTimerRef.current);
-        peekTimerRef.current = setTimeout(() => { setPeekActive(false); setPeekPos(null); }, 10000);
-        showCheatToast('👁️ peek — 10s');
         return true;
       case '/doublemove':
         onDoubleMoveArm?.();
@@ -893,19 +907,18 @@ export default function Chat({
       {/* ── Persistent CHEAT TASKBAR — appears once unlocked ─────────── */}
       {cheatsUnlocked && showCheatsMenu && (() => {
         const buttons: { label: string; emoji: string; cmd: string; group: 'vis' | 'perc' | 'game'; title: string }[] = [
-          { group: 'vis',  emoji: '📶', label: 'WIFI',     cmd: '/blockwifi',   title: 'Fake Wi-Fi popup blocks their board' },
-          { group: 'vis',  emoji: '✅', label: 'UNWIFI',   cmd: '/unblockwifi', title: 'Lift the Wi-Fi popup' },
-          { group: 'vis',  emoji: '🌀', label: 'SHAKE',    cmd: '/shake',       title: 'Shake their screen (3s)' },
-          { group: 'vis',  emoji: '🪩', label: 'DISCO',    cmd: '/disco',       title: 'Rainbow strobe (4s)' },
-          { group: 'vis',  emoji: '🎨', label: 'HUE',      cmd: '/colorblind',  title: 'Swap red↔blue hues (6s)' },
-          { group: 'vis',  emoji: '👻', label: 'CURSOR',   cmd: '/ghostcursor', title: 'Fake cursor drifts across their screen (5s)' },
-          { group: 'vis',  emoji: '🌧️', label: 'SPAM',     cmd: '/spam',        title: 'Emoji rain (5s)' },
-          { group: 'vis',  emoji: '📯', label: 'HORN',     cmd: '/airhorn',     title: 'Loud buzz on their side' },
-          { group: 'vis',  emoji: '🎭', label: 'FAKEMOVE', cmd: '/fakemove',    title: 'Fake "opponent moved" ping' },
-          { group: 'vis',  emoji: '🚪', label: 'FAKELEAVE',cmd: '/fakeleave',   title: 'Fake disconnect system message' },
-          { group: 'perc', emoji: '🪞', label: 'MIRROR',   cmd: '/mirror',      title: 'Flip their view horizontally (5s)' },
-          { group: 'perc', emoji: '🌫️', label: 'FOG',      cmd: '/fog',         title: 'Fog around their cursor (6s)' },
-          { group: 'perc', emoji: '👁️', label: 'PEEK',     cmd: '/peek',        title: 'See their cursor for 10s' },
+          { group: 'vis',  emoji: '📶', label: 'WIFI',     cmd: '/blockwifi',   title: 'Fake Wi-Fi popup — toggle on/off' },
+          { group: 'vis',  emoji: '🌀', label: 'SHAKE',    cmd: '/shake',       title: 'Shake their screen — toggle on/off' },
+          { group: 'vis',  emoji: '🪩', label: 'DISCO',    cmd: '/disco',       title: 'Rainbow strobe — toggle on/off' },
+          { group: 'vis',  emoji: '🎨', label: 'HUE',      cmd: '/colorblind',  title: 'Swap red↔blue hues — toggle on/off' },
+          { group: 'vis',  emoji: '👻', label: 'CURSOR',   cmd: '/ghostcursor', title: 'Fake drifting cursor — toggle on/off' },
+          { group: 'vis',  emoji: '🌧️', label: 'SPAM',     cmd: '/spam',        title: 'Emoji rain — toggle on/off' },
+          { group: 'vis',  emoji: '📯', label: 'HORN',     cmd: '/airhorn',     title: 'Loud buzz on their side (one-shot)' },
+          { group: 'vis',  emoji: '🎭', label: 'FAKEMOVE', cmd: '/fakemove',    title: 'Fake "opponent moved" ping (one-shot)' },
+          { group: 'vis',  emoji: '🚪', label: 'FAKELEAVE',cmd: '/fakeleave',   title: 'Fake disconnect message (one-shot)' },
+          { group: 'perc', emoji: '🪞', label: 'MIRROR',   cmd: '/mirror',      title: 'Flip their view horizontally — toggle' },
+          { group: 'perc', emoji: '🌫️', label: 'FOG',      cmd: '/fog',         title: 'Fog around their cursor — toggle' },
+          { group: 'perc', emoji: '👁️', label: 'PEEK',     cmd: '/peek',        title: 'See their cursor — toggle' },
           { group: 'perc', emoji: '🫥', label: 'GHOST',    cmd: '/ghost-random', title: 'Hide one random enemy cell from them (8s)' },
           { group: 'game', emoji: '⏪', label: 'UNDO',     cmd: '/undo',        title: 'Revert the board one snapshot' },
           { group: 'game', emoji: '🫳', label: 'STEAL',    cmd: '/steal',       title: 'Convert a random enemy circle to yours' },
@@ -990,40 +1003,67 @@ export default function Chat({
                 >
                   {groupLabel[g]}
                 </span>
-                {buttons.filter((b) => b.group === g).map((b) => (
-                  <button
-                    key={b.cmd}
-                    onClick={() => onBtn(b.cmd)}
-                    title={`${b.cmd} — ${b.title}`}
-                    className="ff-space"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: '5px 8px',
-                      background: 'rgba(13,13,34,0.9)',
-                      border: `1px solid ${groupColor[g]}55`,
-                      borderRadius: '3px',
-                      color: 'rgba(240,240,255,0.88)',
-                      fontSize: '9px',
-                      letterSpacing: '0.12em',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      transition: 'all 0.12s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = `${groupColor[g]}22`;
-                      e.currentTarget.style.borderColor = groupColor[g];
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(13,13,34,0.9)';
-                      e.currentTarget.style.borderColor = `${groupColor[g]}55`;
-                    }}
-                  >
-                    <span style={{ fontSize: '12px', lineHeight: 1 }}>{b.emoji}</span>
-                    <span>{b.label}</span>
-                  </button>
-                ))}
+                {buttons.filter((b) => b.group === g).map((b) => {
+                  const toggleKind = TOGGLE_CMDS[b.cmd];
+                  const isActive = toggleKind ? activeFx.has(toggleKind) : false;
+                  const c = groupColor[g];
+                  return (
+                    <button
+                      key={b.cmd}
+                      onClick={() => onBtn(b.cmd)}
+                      title={`${b.cmd} — ${b.title}${isActive ? ' (ON — click to stop)' : ''}`}
+                      className="ff-space"
+                      aria-pressed={isActive}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '5px 8px',
+                        background: isActive ? `${c}2E` : 'rgba(13,13,34,0.9)',
+                        border: `1px solid ${isActive ? c : `${c}55`}`,
+                        borderRadius: '3px',
+                        color: isActive ? c : 'rgba(240,240,255,0.88)',
+                        fontSize: '9px',
+                        letterSpacing: '0.12em',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        transition: 'all 0.12s ease',
+                        boxShadow: isActive ? `0 0 12px ${c}80, inset 0 0 8px ${c}33` : 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = `${c}22`;
+                          e.currentTarget.style.borderColor = c;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'rgba(13,13,34,0.9)';
+                          e.currentTarget.style.borderColor = `${c}55`;
+                        }
+                      }}
+                    >
+                      {isActive && (
+                        <span
+                          aria-hidden
+                          style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: c,
+                            boxShadow: `0 0 6px ${c}`,
+                            animation: 'pip-alert 0.9s ease-in-out infinite',
+                          }}
+                        />
+                      )}
+                      <span style={{ fontSize: '12px', lineHeight: 1 }}>{b.emoji}</span>
+                      <span>{b.label}</span>
+                      {isActive && (
+                        <span style={{ fontSize: '7px', letterSpacing: '0.2em', opacity: 0.85 }}>ON</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             ))}
 
