@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, KeyboardEvent } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Player } from '@/lib/types';
+import { Player, GameStatus } from '@/lib/types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatMessage {
@@ -10,9 +10,17 @@ interface ChatMessage {
   text: string;
   from: Player;
   ts: number;
+  system?: boolean;
+}
+
+interface ReactionPayload {
+  messageId: string;
+  emoji: string;
+  from: Player;
 }
 
 const QUICK_MESSAGES = ['HURRY UP', 'LOVE YOU', 'GG', 'OOPS', 'NICE MOVE', "YOU'RE COOKED", 'OOF', 'NOOO'];
+const EMOJIS = ['👍', '😂', '🔥', '💀', '😭', '❤️'];
 
 const COLOR_HEX = { blue: '#00CFFF', red: '#FF2D55' } as const;
 const COLOR_RGB = { blue: '0,207,255', red: '255,45,85' } as const;
@@ -20,9 +28,19 @@ const COLOR_RGB = { blue: '0,207,255', red: '255,45,85' } as const;
 const MAX_LEN = 120;
 const MAX_HISTORY = 80;
 
-export default function Chat({ roomId, myColor }: { roomId: string; myColor: Player | null }) {
+export default function Chat({
+  roomId,
+  myColor,
+  gameStatus,
+}: {
+  roomId: string;
+  myColor: Player | null;
+  gameStatus?: GameStatus;
+}) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [reactions, setReactions] = useState<Record<string, { emoji: string; from: Player }[]>>({});
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [incoming, setIncoming] = useState<ChatMessage | null>(null);
   const [unread, setUnread] = useState(0);
@@ -32,11 +50,16 @@ export default function Chat({ roomId, myColor }: { roomId: string; myColor: Pla
   const inputRef = useRef<HTMLInputElement>(null);
   const incomingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openRef = useRef(false);
+  const disconnectNotedRef = useRef(false);
   useEffect(() => { openRef.current = open; }, [open]);
 
   useEffect(() => {
+    if (!myColor || gameStatus === 'finished') return;
     const channel = supabase.channel(`chat:${roomId}`, {
-      config: { broadcast: { self: false } },
+      config: {
+        broadcast: { self: false },
+        presence: { key: myColor },
+      },
     });
     channel.on('broadcast', { event: 'msg' }, (payload) => {
       const m = payload.payload as ChatMessage;
@@ -49,14 +72,62 @@ export default function Chat({ roomId, myColor }: { roomId: string; myColor: Pla
         incomingTimerRef.current = setTimeout(() => setIncoming(null), 3400);
       }
     });
-    channel.subscribe();
+    channel.on('broadcast', { event: 'reaction' }, (payload) => {
+      const r = payload.payload as ReactionPayload;
+      setReactions((prev) => {
+        const existing = prev[r.messageId] || [];
+        const idx = existing.findIndex((x) => x.from === r.from && x.emoji === r.emoji);
+        const next = idx >= 0
+          ? existing.filter((_, i) => i !== idx)
+          : [...existing, { emoji: r.emoji, from: r.from }];
+        return { ...prev, [r.messageId]: next };
+      });
+    });
+    channel.on('presence', { event: 'leave' }, ({ key }) => {
+      if (key === myColor || disconnectNotedRef.current) return;
+      disconnectNotedRef.current = true;
+      const other = (key === 'blue' ? 'blue' : 'red') as Player;
+      const sys: ChatMessage = {
+        id: `sys-leave-${Date.now()}`,
+        text: `${other.toUpperCase()} disconnected from chat`,
+        from: other,
+        ts: Date.now(),
+        system: true,
+      };
+      setMessages((prev) => [...prev.slice(-MAX_HISTORY + 1), sys]);
+      if (!openRef.current) {
+        setIncoming(sys);
+        setUnread((u) => u + 1);
+        if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
+        incomingTimerRef.current = setTimeout(() => setIncoming(null), 4200);
+      }
+    });
+    channel.on('presence', { event: 'join' }, ({ key }) => {
+      if (key !== myColor) disconnectNotedRef.current = false;
+    });
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ color: myColor, at: Date.now() });
+      }
+    });
     channelRef.current = channel;
     return () => {
       if (incomingTimerRef.current) clearTimeout(incomingTimerRef.current);
       supabase.removeChannel(channel);
       channelRef.current = null;
     };
-  }, [roomId, myColor]);
+  }, [roomId, myColor, gameStatus]);
+
+  useEffect(() => {
+    if (gameStatus !== 'finished') return;
+    setMessages([]);
+    setReactions({});
+    setIncoming(null);
+    setUnread(0);
+    setOpen(false);
+    setPickerFor(null);
+    setDraft('');
+  }, [gameStatus]);
 
   useEffect(() => {
     if (!open || !listRef.current) return;
@@ -67,10 +138,25 @@ export default function Chat({ roomId, myColor }: { roomId: string; myColor: Pla
     setTimeout(() => inputRef.current?.focus(), 50);
   }, [open, messages.length]);
 
-  if (!myColor) return null;
+  if (!myColor || gameStatus === 'finished') return null;
 
   const myHex = COLOR_HEX[myColor];
   const myRgb = COLOR_RGB[myColor];
+
+  const sendReaction = (messageId: string, emoji: string) => {
+    if (!channelRef.current) return;
+    const payload: ReactionPayload = { messageId, emoji, from: myColor };
+    channelRef.current.send({ type: 'broadcast', event: 'reaction', payload });
+    setReactions((prev) => {
+      const existing = prev[messageId] || [];
+      const idx = existing.findIndex((x) => x.from === myColor && x.emoji === emoji);
+      const next = idx >= 0
+        ? existing.filter((_, i) => i !== idx)
+        : [...existing, { emoji, from: myColor }];
+      return { ...prev, [messageId]: next };
+    });
+    setPickerFor(null);
+  };
 
   const send = (raw: string) => {
     const trimmed = raw.trim().slice(0, MAX_LEN);
@@ -312,45 +398,143 @@ export default function Chat({ roomId, myColor }: { roomId: string; myColor: Pla
               </div>
             )}
             {messages.map((m) => {
+              if (m.system) {
+                return (
+                  <div
+                    key={m.id}
+                    className="ff-space"
+                    style={{
+                      alignSelf: 'center',
+                      color: 'rgba(170,170,255,0.55)',
+                      fontSize: '9px',
+                      letterSpacing: '0.22em',
+                      textTransform: 'uppercase',
+                      padding: '4px 10px',
+                      border: '1px dashed rgba(170,170,255,0.22)',
+                      borderRadius: '3px',
+                    }}
+                  >
+                    ▸ {m.text}
+                  </div>
+                );
+              }
               const mine = m.from === myColor;
               const hex = COLOR_HEX[m.from];
               const rgb = COLOR_RGB[m.from];
+              const msgReactions = reactions[m.id] || [];
+              const grouped = msgReactions.reduce<Record<string, Player[]>>((acc, r) => {
+                (acc[r.emoji] ||= []).push(r.from);
+                return acc;
+              }, {});
+              const showPicker = pickerFor === m.id;
               return (
                 <div
                   key={m.id}
                   style={{
                     alignSelf: mine ? 'flex-end' : 'flex-start',
                     maxWidth: '82%',
-                    background: `rgba(${rgb},0.08)`,
-                    border: `1px solid rgba(${rgb},0.32)`,
-                    borderLeft: mine ? 'none' : `3px solid ${hex}`,
-                    borderRight: mine ? `3px solid ${hex}` : 'none',
-                    padding: '6px 10px',
-                    borderRadius: '4px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: mine ? 'flex-end' : 'flex-start',
+                    gap: '3px',
+                    position: 'relative',
                   }}
                 >
                   <div
-                    className="ff-space"
+                    onClick={() => setPickerFor((p) => (p === m.id ? null : m.id))}
                     style={{
-                      color: `rgba(${rgb},0.55)`,
-                      fontSize: '7px',
-                      letterSpacing: '0.2em',
-                      marginBottom: '2px',
+                      background: `rgba(${rgb},0.08)`,
+                      border: `1px solid rgba(${rgb},0.32)`,
+                      borderLeft: mine ? 'none' : `3px solid ${hex}`,
+                      borderRight: mine ? `3px solid ${hex}` : 'none',
+                      padding: '6px 10px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
                     }}
                   >
-                    {mine ? 'YOU' : m.from === 'blue' ? 'BLUE' : 'RED'}
+                    <div
+                      className="ff-space"
+                      style={{
+                        color: `rgba(${rgb},0.55)`,
+                        fontSize: '7px',
+                        letterSpacing: '0.2em',
+                        marginBottom: '2px',
+                      }}
+                    >
+                      {mine ? 'YOU' : m.from === 'blue' ? 'BLUE' : 'RED'}
+                    </div>
+                    <div
+                      style={{
+                        color: 'rgba(240,240,255,0.92)',
+                        fontSize: '13px',
+                        lineHeight: 1.3,
+                        wordBreak: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      {m.text}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      color: 'rgba(240,240,255,0.92)',
-                      fontSize: '13px',
-                      lineHeight: 1.3,
-                      wordBreak: 'break-word',
-                      whiteSpace: 'pre-wrap',
-                    }}
-                  >
-                    {m.text}
-                  </div>
+
+                  {showPicker && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '2px',
+                        background: '#06060F',
+                        border: `1px solid rgba(${myRgb},0.35)`,
+                        borderRadius: '3px',
+                        padding: '3px',
+                      }}
+                    >
+                      {EMOJIS.map((e) => (
+                        <button
+                          key={e}
+                          onClick={(ev) => { ev.stopPropagation(); sendReaction(m.id, e); }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            padding: '2px 4px',
+                            fontSize: '15px',
+                            cursor: 'pointer',
+                            lineHeight: 1,
+                          }}
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {Object.keys(grouped).length > 0 && (
+                    <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
+                      {Object.entries(grouped).map(([emoji, froms]) => {
+                        const mineReacted = froms.includes(myColor);
+                        return (
+                          <button
+                            key={emoji}
+                            onClick={() => sendReaction(m.id, emoji)}
+                            style={{
+                              background: mineReacted ? `rgba(${myRgb},0.18)` : 'rgba(255,255,255,0.04)',
+                              border: `1px solid rgba(${myRgb},${mineReacted ? '0.55' : '0.18'})`,
+                              color: 'rgba(240,240,255,0.9)',
+                              fontSize: '11px',
+                              padding: '1px 6px',
+                              borderRadius: '10px',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            <span>{emoji}</span>
+                            <span style={{ fontSize: '10px', opacity: 0.75 }}>{froms.length}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}

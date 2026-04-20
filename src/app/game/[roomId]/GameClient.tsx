@@ -991,7 +991,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
       )}
 
       {/* ── Quick-chat / taunts ─────────────────────────────── */}
-      <Chat roomId={roomId} myColor={myColor} />
+      <Chat roomId={roomId} myColor={myColor} gameStatus={game.status} />
 
       {/* ── Win overlay ──────────────────────────────────────── */}
       {showOverlay && (
