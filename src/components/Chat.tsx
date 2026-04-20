@@ -890,94 +890,190 @@ export default function Chat({
         </div>
       )}
 
-      {/* ── Cheats menu ─────────────────────────────────── */}
-      {showCheatsMenu && cheatsUnlocked && (
-        <div
-          onClick={() => setShowCheatsMenu(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 205,
-            background: 'rgba(6,6,15,0.88)', backdropFilter: 'blur(4px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
-          }}
-        >
+      {/* ── Persistent CHEAT TASKBAR — appears once unlocked ─────────── */}
+      {cheatsUnlocked && showCheatsMenu && (() => {
+        const buttons: { label: string; emoji: string; cmd: string; group: 'vis' | 'perc' | 'game'; title: string }[] = [
+          { group: 'vis',  emoji: '📶', label: 'WIFI',     cmd: '/blockwifi',   title: 'Fake Wi-Fi popup blocks their board' },
+          { group: 'vis',  emoji: '✅', label: 'UNWIFI',   cmd: '/unblockwifi', title: 'Lift the Wi-Fi popup' },
+          { group: 'vis',  emoji: '🌀', label: 'SHAKE',    cmd: '/shake',       title: 'Shake their screen (3s)' },
+          { group: 'vis',  emoji: '🪩', label: 'DISCO',    cmd: '/disco',       title: 'Rainbow strobe (4s)' },
+          { group: 'vis',  emoji: '🎨', label: 'HUE',      cmd: '/colorblind',  title: 'Swap red↔blue hues (6s)' },
+          { group: 'vis',  emoji: '👻', label: 'CURSOR',   cmd: '/ghostcursor', title: 'Fake cursor drifts across their screen (5s)' },
+          { group: 'vis',  emoji: '🌧️', label: 'SPAM',     cmd: '/spam',        title: 'Emoji rain (5s)' },
+          { group: 'vis',  emoji: '📯', label: 'HORN',     cmd: '/airhorn',     title: 'Loud buzz on their side' },
+          { group: 'vis',  emoji: '🎭', label: 'FAKEMOVE', cmd: '/fakemove',    title: 'Fake "opponent moved" ping' },
+          { group: 'vis',  emoji: '🚪', label: 'FAKELEAVE',cmd: '/fakeleave',   title: 'Fake disconnect system message' },
+          { group: 'perc', emoji: '🪞', label: 'MIRROR',   cmd: '/mirror',      title: 'Flip their view horizontally (5s)' },
+          { group: 'perc', emoji: '🌫️', label: 'FOG',      cmd: '/fog',         title: 'Fog around their cursor (6s)' },
+          { group: 'perc', emoji: '👁️', label: 'PEEK',     cmd: '/peek',        title: 'See their cursor for 10s' },
+          { group: 'perc', emoji: '🫥', label: 'GHOST',    cmd: '/ghost-random', title: 'Hide one random enemy cell from them (8s)' },
+          { group: 'game', emoji: '⏪', label: 'UNDO',     cmd: '/undo',        title: 'Revert the board one snapshot' },
+          { group: 'game', emoji: '🫳', label: 'STEAL',    cmd: '/steal',       title: 'Convert a random enemy circle to yours' },
+          { group: 'game', emoji: '☢️', label: 'FLIP',     cmd: '/flip',        title: 'Swap every cell\'s owner — nuclear' },
+          { group: 'game', emoji: '🔁', label: '2XMOVE',   cmd: '/doublemove',  title: 'Arm: next move won\'t pass the turn' },
+        ];
+        const groupColor = { vis: '#00CFFF', perc: '#B388FF', game: '#FF2D55' };
+        const groupLabel = { vis: 'VISUAL', perc: 'PERCEPTION', game: 'STATE' };
+
+        const onBtn = (cmd: string) => {
+          if (cmd === '/ghost-random') {
+            // Pick a random enemy cell and fire /ghost r c
+            if (!game || !myColor) return;
+            const enemy: Player = myColor === 'blue' ? 'red' : 'blue';
+            const cells: [number, number][] = [];
+            game.grid.forEach((row, r) => row.forEach((c, ci) => { if (c.owner === enemy) cells.push([r, ci]); }));
+            if (cells.length === 0) { showCheatToast('no enemy cells'); return; }
+            const [r, c] = cells[Math.floor(Math.random() * cells.length)];
+            runCheatCommand('/ghost', `/ghost ${r} ${c}`);
+            return;
+          }
+          runCheatCommand(cmd, cmd);
+        };
+
+        const groups: Array<'vis' | 'perc' | 'game'> = ['vis', 'perc', 'game'];
+        return (
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="anim-slide-up-fast"
             style={{
-              width: '100%', maxWidth: '440px', maxHeight: '85vh', overflowY: 'auto',
-              background: '#0D0D22',
+              position: 'fixed',
+              top: '10px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 90,
+              maxWidth: 'calc(100vw - 20px)',
+              background: 'rgba(8,8,18,0.92)',
               border: '1px solid rgba(255,45,85,0.5)',
-              borderTop: '3px solid #FF2D55',
-              borderRadius: '6px', padding: '22px',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.7), 0 0 40px rgba(255,45,85,0.15)',
+              borderTop: '2px solid #FF2D55',
+              borderRadius: '6px',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.6), 0 0 22px rgba(255,45,85,0.18)',
+              backdropFilter: 'blur(6px)',
+              padding: '6px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              overflowX: 'auto',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 className="ff-bebas" style={{ margin: 0, color: '#FF2D55', fontSize: '22px', letterSpacing: '0.16em' }}>
-                ☠ CHEAT CODES
-              </h3>
-              <button
-                onClick={() => setShowCheatsMenu(false)}
-                style={{ background: 'transparent', border: 'none', color: 'rgba(170,170,255,0.6)', fontSize: '22px', cursor: 'pointer' }}
-              >
-                ×
-              </button>
+            <div
+              className="ff-bebas"
+              style={{
+                color: '#FF2D55',
+                fontSize: '13px',
+                letterSpacing: '0.22em',
+                padding: '0 8px 0 4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                flexShrink: 0,
+              }}
+            >
+              ☠ CHEATS
             </div>
-            <p className="ff-space" style={{ fontSize: '9px', letterSpacing: '0.2em', color: 'rgba(170,170,255,0.5)', textTransform: 'uppercase', margin: '0 0 14px' }}>
-              Type any command in chat. Your opponent won&apos;t see it.
-            </p>
 
-            {[
-              { title: 'VISUAL PRANKS', items: [
-                ['/blockwifi', 'Fake Wi-Fi popup blocks their board'],
-                ['/unblockwifi', 'Lift the Wi-Fi popup'],
-                ['/shake', 'Shake their screen (3s)'],
-                ['/disco  /rave', 'Rainbow strobe (4s)'],
-                ['/colorblind', 'Hue-swap their screen (6s)'],
-                ['/ghostcursor', 'Fake cursor drifts on their screen'],
-                ['/spam', 'Rain of emojis (5s)'],
-                ['/airhorn', 'Loud buzz on their side'],
-                ['/fakemove', 'Fake "OPPONENT MOVED" ping'],
-                ['/fakeleave', 'Fake "disconnected" system msg'],
-              ] },
-              { title: 'PERCEPTION', items: [
-                ['/mirror', 'Flip their view horizontally (5s)'],
-                ['/fog', 'Fog-of-war around their cursor (6s)'],
-                ['/peek', 'See their cursor for 10s'],
-                ['/ghost <r> <c>', 'Hide a cell from them (8s)'],
-              ] },
-              { title: 'GAME STATE (DB)', items: [
-                ['/undo', 'Revert the board one snapshot'],
-                ['/steal', 'Convert one random enemy circle to yours'],
-                ['/flip', 'Swap every cell\'s owner — nuclear'],
-                ['/doublemove', 'Arm: next move won\'t pass the turn'],
-              ] },
-            ].map((group) => (
-              <div key={group.title} style={{ marginBottom: '14px' }}>
-                <div className="ff-space" style={{ fontSize: '9px', letterSpacing: '0.24em', color: '#00CFFF', textTransform: 'uppercase', marginBottom: '6px', opacity: 0.7 }}>
-                  {group.title}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {group.items.map(([cmd, desc]) => (
-                    <div key={cmd} style={{
-                      display: 'grid', gridTemplateColumns: '140px 1fr', gap: '10px',
-                      padding: '6px 10px',
-                      background: 'rgba(255,45,85,0.04)',
-                      border: '1px solid rgba(255,45,85,0.12)',
+            {groups.map((g, gi) => (
+              <div
+                key={g}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}
+              >
+                {gi > 0 && (
+                  <div style={{ width: '1px', height: '22px', background: 'rgba(170,170,255,0.15)', margin: '0 4px' }} />
+                )}
+                <span
+                  className="ff-space"
+                  style={{
+                    fontSize: '7px',
+                    letterSpacing: '0.22em',
+                    color: groupColor[g],
+                    opacity: 0.6,
+                    padding: '0 2px',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {groupLabel[g]}
+                </span>
+                {buttons.filter((b) => b.group === g).map((b) => (
+                  <button
+                    key={b.cmd}
+                    onClick={() => onBtn(b.cmd)}
+                    title={`${b.cmd} — ${b.title}`}
+                    className="ff-space"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 8px',
+                      background: 'rgba(13,13,34,0.9)',
+                      border: `1px solid ${groupColor[g]}55`,
                       borderRadius: '3px',
-                    }}>
-                      <code style={{
-                        fontFamily: "'Space Mono', monospace", fontSize: '11px',
-                        color: '#FF2D55', letterSpacing: '0.04em',
-                      }}>{cmd}</code>
-                      <span style={{ fontSize: '11px', color: 'rgba(240,240,255,0.78)', lineHeight: 1.35 }}>{desc}</span>
-                    </div>
-                  ))}
-                </div>
+                      color: 'rgba(240,240,255,0.88)',
+                      fontSize: '9px',
+                      letterSpacing: '0.12em',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      transition: 'all 0.12s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = `${groupColor[g]}22`;
+                      e.currentTarget.style.borderColor = groupColor[g];
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(13,13,34,0.9)';
+                      e.currentTarget.style.borderColor = `${groupColor[g]}55`;
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', lineHeight: 1 }}>{b.emoji}</span>
+                    <span>{b.label}</span>
+                  </button>
+                ))}
               </div>
             ))}
+
+            <button
+              onClick={() => setShowCheatsMenu(false)}
+              title="Hide taskbar (/cheats to restore)"
+              style={{
+                marginLeft: '4px',
+                background: 'transparent',
+                border: '1px solid rgba(170,170,255,0.2)',
+                color: 'rgba(170,170,255,0.6)',
+                fontSize: '14px',
+                lineHeight: 1,
+                cursor: 'pointer',
+                padding: '3px 8px',
+                borderRadius: '3px',
+                flexShrink: 0,
+              }}
+            >
+              ×
+            </button>
           </div>
-        </div>
+        );
+      })()}
+
+      {/* When hidden, show a tiny re-open tab */}
+      {cheatsUnlocked && !showCheatsMenu && (
+        <button
+          onClick={() => setShowCheatsMenu(true)}
+          title="Show cheats taskbar"
+          className="ff-space"
+          style={{
+            position: 'fixed',
+            top: '10px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 90,
+            padding: '4px 10px',
+            background: 'rgba(8,8,18,0.88)',
+            border: '1px solid rgba(255,45,85,0.4)',
+            borderTop: '2px solid #FF2D55',
+            borderRadius: '0 0 4px 4px',
+            color: '#FF2D55',
+            fontSize: '9px',
+            letterSpacing: '0.2em',
+            cursor: 'pointer',
+          }}
+        >
+          ☠ CHEATS
+        </button>
       )}
 
       {/* Cheat-command confirmation toast (only visible to the prankster) */}

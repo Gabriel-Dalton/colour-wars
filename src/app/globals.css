@@ -13,11 +13,11 @@ body { margin: 0; padding: 0; }
 /* ── Game two-column responsive layout ─────────────────────── */
 .cw-layout {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   position: relative;
   z-index: 1;
 }
@@ -25,22 +25,62 @@ body { margin: 0; padding: 0; }
 .cw-layout > .cw-col-right {
   display: contents;
 }
-@media (min-width: 900px) {
+@media (min-width: 960px) {
   .cw-layout {
-    max-width: 880px;
+    max-width: 1040px;
     flex-direction: row;
     align-items: flex-start;
     justify-content: center;
-    gap: 40px;
+    gap: 72px;
+    padding: 24px 24px 0;
   }
   .cw-layout > .cw-col-left,
   .cw-layout > .cw-col-right {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 20px;
   }
-  .cw-layout > .cw-col-left  { flex: 0 1 360px; align-items: center; }
-  .cw-layout > .cw-col-right { flex: 0 1 340px; align-items: stretch; }
+  .cw-layout > .cw-col-left  { flex: 0 1 400px; align-items: center; }
+  .cw-layout > .cw-col-right { flex: 0 1 400px; align-items: stretch; }
+  /* Inside the right column, children can fill the full column width. */
+  .cw-layout > .cw-col-right > * { max-width: none !important; }
+}
+
+/* ── Home (landing) responsive layout ──────────────────────── */
+.cw-home-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.cw-home-body {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cw-home-rooms {
+  margin-top: 36px;
+  width: 100%;
+  max-width: 360px;
+}
+@media (min-width: 960px) {
+  .cw-home-wrap {
+    max-width: 900px;
+    display: grid;
+    grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+    align-items: start;
+    gap: 56px;
+    margin-top: 8px;
+  }
+  .cw-home-body,
+  .cw-home-rooms {
+    max-width: none;
+    margin-top: 0;
+  }
 }
 
 /* Dot-grid background */

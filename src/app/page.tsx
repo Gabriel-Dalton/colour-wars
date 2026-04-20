@@ -406,18 +406,11 @@ export default function Home() {
         </p>
       </div>
 
+      {/* ── Side-by-side wrapper (desktop only) ─────────────── */}
+      <div className="cw-home-wrap">
+
       {/* ── Panel ───────────────────────────────────────────── */}
-      <div
-        style={{
-          width: '100%',
-          maxWidth: '320px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
+      <div className="cw-home-body">
         {/* Mode picker */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '4px' }}>
           <span
@@ -641,16 +634,7 @@ export default function Home() {
 
       {/* ── Open rooms ─────────────────────────────────────── */}
       {openRooms.length > 0 && (
-        <div
-          className="anim-slide-up"
-          style={{
-            marginTop: '36px',
-            width: '100%',
-            maxWidth: '320px',
-            position: 'relative',
-            zIndex: 1,
-          }}
-        >
+        <div className="anim-slide-up cw-home-rooms">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
             <span
               className="ff-space"
@@ -743,6 +727,9 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      </div>
+      {/* ── /cw-home-wrap ──────────────────────────────────── */}
 
       {/* ── How to play ─────────────────────────────────────── */}
       <div
