@@ -450,6 +450,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
         grid: createInitialGrid(),
         winner: null,
         move_count: 0,
+        mode: game.mode ?? 'classic',
       });
       if (insertError) {
         console.error('[rematch] insert failed', insertError);
