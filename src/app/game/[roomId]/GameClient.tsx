@@ -1128,10 +1128,12 @@ export default function GameClient({ roomId }: { roomId: string }) {
             inset: 0,
             background: `linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(${winnerRgb},0.06) 100%)`,
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'center',
-            padding: '24px',
+            padding: 'clamp(12px, 4vw, 24px)',
             zIndex: 50,
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
           }}
         >
           <div
@@ -1140,12 +1142,13 @@ export default function GameClient({ roomId }: { roomId: string }) {
               background: '#0D0D22',
               border: `1px solid rgba(${winnerRgb},0.55)`,
               borderTop: `3px solid ${winnerColor}`,
-              padding: '36px 32px 32px',
+              padding: 'clamp(20px, 5vw, 36px) clamp(18px, 5vw, 32px) clamp(20px, 5vw, 32px)',
               textAlign: 'center',
               width: '100%',
               maxWidth: '300px',
               borderRadius: '6px',
               boxShadow: `0 0 80px rgba(${winnerRgb},0.12)`,
+              margin: 'auto',
             }}
           >
             <div
@@ -1163,7 +1166,7 @@ export default function GameClient({ roomId }: { roomId: string }) {
             <h2
               className="ff-bebas"
               style={{
-                fontSize: '76px',
+                fontSize: 'clamp(52px, 16vw, 76px)',
                 lineHeight: 0.88,
                 margin: '0 0 16px',
                 color: game.winner === myColor ? '#fff' : 'rgba(170,170,255,0.35)',
