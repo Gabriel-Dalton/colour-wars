@@ -406,8 +406,8 @@ export default function Home() {
         </p>
       </div>
 
-      {/* ── Side-by-side wrapper (desktop only) ─────────────── */}
-      <div className="cw-home-wrap">
+      {/* ── Side-by-side wrapper (desktop only, when rooms exist) ── */}
+      <div className={`cw-home-wrap${openRooms.length > 0 ? ' cw-home-wrap--split' : ''}`}>
 
       {/* ── Panel ───────────────────────────────────────────── */}
       <div className="cw-home-body">
