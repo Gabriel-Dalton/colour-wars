@@ -8,3 +8,5 @@ dist
 !.env.example
 *.log
 .DS_Store
+# Local Claude Code state - machine-specific, never for a public repo
+.claude/
