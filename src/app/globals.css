@@ -69,15 +69,19 @@ body { margin: 0; padding: 0; }
 }
 @media (min-width: 960px) {
   .cw-home-wrap {
+    margin-top: 8px;
+  }
+  /* Two columns only once there are open rooms to fill the second one —
+     otherwise the empty column would push the panel off-centre. */
+  .cw-home-wrap--split {
     max-width: 900px;
     display: grid;
     grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
     align-items: start;
     gap: 56px;
-    margin-top: 8px;
   }
-  .cw-home-body,
-  .cw-home-rooms {
+  .cw-home-wrap--split .cw-home-body,
+  .cw-home-wrap--split .cw-home-rooms {
     max-width: none;
     margin-top: 0;
   }
