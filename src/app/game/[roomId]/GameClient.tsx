@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, isOfflineError, supabaseConfigError } from '@/lib/supabase';
 import { GameRow, Player, Grid as GridType } from '@/lib/types';
 import {
   placeStartingCircle,
@@ -41,6 +41,9 @@ export default function GameClient({ roomId }: { roomId: string }) {
   const [myColor, setMyColor] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Offline errors are recoverable — the room may be fine, we just couldn't reach it.
+  const [canRetry, setCanRetry] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [flyingOrbs, setFlyingOrbs] = useState<FlyingOrbData[]>([]);
@@ -290,10 +293,23 @@ export default function GameClient({ roomId }: { roomId: string }) {
       .single();
 
     if (fetchError || !data) {
-      setError('Room not found. Check the code and try again.');
+      // A dead backend and a missing room are very different problems: only one
+      // of them is the player's fault, and only one is worth retrying.
+      if (supabaseConfigError) {
+        setError(supabaseConfigError);
+        setCanRetry(false);
+      } else if (isOfflineError(fetchError)) {
+        setError("Can't reach the server. It may be waking up — try again in a moment.");
+        setCanRetry(true);
+      } else {
+        setError('Room not found. Check the code and try again.');
+        setCanRetry(false);
+      }
       setLoading(false);
       return;
     }
+
+    setCanRetry(false);
 
     let gameData = data as GameRow;
 
@@ -551,22 +567,50 @@ export default function GameClient({ roomId }: { roomId: string }) {
         >
           {error}
         </p>
-        <button
-          onClick={() => router.push('/')}
-          className="ff-bebas"
-          style={{
-            padding: '14px 32px',
-            background: 'transparent',
-            border: '1px solid rgba(0,207,255,0.55)',
-            borderLeft: '3px solid #00CFFF',
-            color: '#00CFFF',
-            fontSize: '22px',
-            letterSpacing: '0.1em',
-            cursor: 'pointer',
-          }}
-        >
-          BACK HOME
-        </button>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {canRetry && (
+            <button
+              onClick={async () => {
+                setRetrying(true);
+                setError(null);
+                setLoading(true);
+                await initGame(getOrCreatePlayerId());
+                setRetrying(false);
+              }}
+              disabled={retrying}
+              className="ff-bebas"
+              style={{
+                padding: '14px 32px',
+                background: 'transparent',
+                border: '1px solid rgba(0,207,255,0.55)',
+                borderLeft: '3px solid #00CFFF',
+                color: '#00CFFF',
+                fontSize: '22px',
+                letterSpacing: '0.1em',
+                cursor: retrying ? 'not-allowed' : 'pointer',
+                opacity: retrying ? 0.55 : 1,
+              }}
+            >
+              {retrying ? 'RETRYING...' : 'TRY AGAIN'}
+            </button>
+          )}
+          <button
+            onClick={() => router.push('/')}
+            className="ff-bebas"
+            style={{
+              padding: '14px 32px',
+              background: 'transparent',
+              border: '1px solid rgba(0,207,255,0.55)',
+              borderLeft: '3px solid #00CFFF',
+              color: '#00CFFF',
+              fontSize: '22px',
+              letterSpacing: '0.1em',
+              cursor: 'pointer',
+            }}
+          >
+            BACK HOME
+          </button>
+        </div>
       </div>
     );
   }

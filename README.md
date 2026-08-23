@@ -311,6 +311,44 @@ Add the two `NEXT_PUBLIC_SUPABASE_*` env vars in your Vercel project settings.
 
 ---
 
+## Troubleshooting
+
+### "Blocked by CORS policy: No 'Access-Control-Allow-Origin' header"
+
+**This is almost never a real CORS problem.** Supabase serves `Access-Control-Allow-Origin: *`
+on the REST API, so if you are seeing this, the request most likely never reached PostgREST
+at all.
+
+Look for the HTTP status next to the error. A `521` (or any 5xx from Cloudflare) means the
+Supabase origin is down, and that error response carries no CORS headers — so the browser
+reports the *missing header* rather than the outage that caused it.
+
+Confirm from a terminal, which shows you the real status without the CORS layer in the way:
+
+```bash
+curl -i "https://<project-ref>.supabase.co/rest/v1/" \
+  -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY"
+```
+
+- `401` / `200` → the backend is healthy; the problem is in the client or the query.
+- `521` / `50x` → the backend is down. **Free-tier Supabase projects pause after ~7 days of
+  inactivity and do not wake on their own** — restore the project from the Supabase dashboard.
+
+### Local dev suddenly can't reach the backend
+
+`.env.local` is gitignored (see `.env.example`). If it is missing, `NEXT_PUBLIC_SUPABASE_URL`
+is `undefined` at build time and every query fails in a way that looks like an outage. The app
+detects this case and shows a "Server not configured" message rather than failing opaquely.
+
+### `npm run build` hangs locally
+
+The project has `eslint` in `devDependencies` but no ESLint config checked in, so `next build`
+stops on an interactive "How would you like to configure ESLint?" prompt. Run `npx next lint`
+once and choose **Strict** to generate `.eslintrc.json`. Vercel is unaffected — its builds are
+non-interactive.
+
+---
+
 ## Game logic (rules summary)
 
 - Uniform **critical mass = 4** (every cell explodes at 4 dots)
