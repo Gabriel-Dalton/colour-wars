@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase, isOfflineError, supabaseConfigError } from '@/lib/supabase';
 import { createInitialGrid } from '@/lib/gameLogic';
 
 function generateRoomCode(): string {
@@ -30,25 +30,74 @@ export default function Home() {
   const [mode, setMode] = useState<'classic' | 'open'>('open');
   const [openRooms, setOpenRooms] = useState<{ id: string; mode: string | null; created_at: string }[]>([]);
   const [showHowTo, setShowHowTo] = useState(false);
+  const [roomsOffline, setRoomsOffline] = useState(false);
   const input1Ref = useRef<HTMLInputElement>(null);
   const input2Ref = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   // ── Poll open (waiting) rooms so players can browse lobbies ──
+  // Self-scheduling rather than setInterval: a failing backend backs off instead
+  // of being hit every 5s forever, and a hidden tab doesn't poll at all.
   useEffect(() => {
     let cancelled = false;
-    const fetchRooms = async () => {
-      const { data } = await supabase
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let failures = 0;
+
+    const BASE_MS = 5000;
+    const MAX_MS = 60000;
+
+    function schedule(ms: number) {
+      if (cancelled) return;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(fetchRooms, ms);
+    }
+
+    async function fetchRooms() {
+      if (cancelled) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        schedule(BASE_MS);
+        return;
+      }
+
+      const { data, error: fetchError } = await supabase
         .from('games')
         .select('id, mode, created_at')
         .eq('status', 'waiting')
         .order('created_at', { ascending: false })
         .limit(12);
-      if (!cancelled && data) setOpenRooms(data as typeof openRooms);
+
+      if (cancelled) return;
+
+      if (fetchError) {
+        failures += 1;
+        setRoomsOffline(true);
+        // Exponential backoff, capped — the lobby is a nicety, not worth a retry storm.
+        schedule(Math.min(BASE_MS * 2 ** failures, MAX_MS));
+        return;
+      }
+
+      failures = 0;
+      setRoomsOffline(false);
+      if (data) setOpenRooms(data as typeof openRooms);
+      schedule(BASE_MS);
+    }
+
+    // Coming back to the tab should refresh immediately, not wait out a backoff.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        failures = 0;
+        schedule(0);
+      }
     };
+    document.addEventListener('visibilitychange', onVisible);
+
     fetchRooms();
-    const t = setInterval(fetchRooms, 5000);
-    return () => { cancelled = true; clearInterval(t); };
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   const createGame = async () => {
@@ -79,7 +128,13 @@ export default function Home() {
     }
 
     if (dbError) {
-      setError('Failed to create game. Check your connection.');
+      if (supabaseConfigError) {
+        setError(supabaseConfigError);
+      } else if (isOfflineError(dbError)) {
+        setError("CAN'T REACH THE SERVER — TRY AGAIN IN A MOMENT");
+      } else {
+        setError('Failed to create game. Check your connection.');
+      }
       setLoading(false);
       return;
     }
@@ -631,6 +686,25 @@ export default function Home() {
           </p>
         )}
       </div>
+
+      {/* ── Backend unreachable ────────────────────────────── */}
+      {roomsOffline && (
+        <div className="anim-slide-up cw-home-rooms">
+          <p
+            className="ff-space"
+            style={{
+              color: 'rgba(255,176,32,0.9)',
+              fontSize: '9px',
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              textAlign: 'center',
+              lineHeight: 1.7,
+            }}
+          >
+            Can&apos;t reach the server — open rooms may be out of date
+          </p>
+        </div>
+      )}
 
       {/* ── Open rooms ─────────────────────────────────────── */}
       {openRooms.length > 0 && (
